@@ -1,0 +1,43 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nom du produit"
+    },
+    "category_id": {
+      "type": "string",
+      "description": "ID de la cat\u00e9gorie"
+    },
+    "price": {
+      "type": "number",
+      "description": "Prix de vente"
+    },
+    "cost_price": {
+      "type": "number",
+      "description": "Prix d'achat"
+    },
+    "stock": {
+      "type": "number",
+      "description": "Quantit\u00e9 en stock"
+    },
+    "min_stock": {
+      "type": "number",
+      "description": "Stock minimum avant alerte"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL de l'image du produit"
+    },
+    "is_active": {
+      "type": "boolean",
+      "description": "Produit actif ou non"
+    }
+  },
+  "required": [
+    "name",
+    "price",
+    "category_id"
+  ]
+}

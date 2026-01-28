@@ -1,0 +1,48 @@
+{
+    "name": "Purchase",
+    "type": "object",
+    "properties": {
+        "product_id": {
+            "type": "string",
+            "description": "ID du produit (optionnel)"
+        },
+        "product_name": {
+            "type": "string",
+            "description": "Nom du produit/article acheté"
+        },
+        "quantity": {
+            "type": "number",
+            "description": "Quantité achetée"
+        },
+        "unit_price": {
+            "type": "number",
+            "description": "Prix unitaire"
+        },
+        "total_amount": {
+            "type": "number",
+            "description": "Montant total (calculé automatiquement)"
+        },
+        "supplier_name": {
+            "type": "string",
+            "description": "Nom du fournisseur"
+        },
+        "payment_method": {
+            "type": "string",
+            "description": "Mode de paiement"
+        },
+        "date": {
+            "type": "string",
+            "description": "Date de l'achat"
+        },
+        "notes": {
+            "type": "string",
+            "description": "Notes additionnelles"
+        }
+    },
+    "required": [
+        "product_name",
+        "quantity",
+        "unit_price",
+        "date"
+    ]
+}

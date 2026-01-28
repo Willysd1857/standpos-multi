@@ -1,0 +1,35 @@
+{
+    "name": "Expense",
+    "type": "object",
+    "properties": {
+        "description": {
+            "type": "string",
+            "description": "Description de la dépense"
+        },
+        "amount": {
+            "type": "number",
+            "description": "Montant de la dépense"
+        },
+        "category": {
+            "type": "string",
+            "description": "Catégorie de la dépense"
+        },
+        "payment_method": {
+            "type": "string",
+            "description": "Mode de paiement"
+        },
+        "date": {
+            "type": "string",
+            "description": "Date de la dépense"
+        },
+        "notes": {
+            "type": "string",
+            "description": "Notes additionnelles"
+        }
+    },
+    "required": [
+        "description",
+        "amount",
+        "date"
+    ]
+}

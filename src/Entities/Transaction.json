@@ -1,0 +1,89 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "reference": {
+      "type": "string",
+      "description": "Num\u00e9ro de r\u00e9f\u00e9rence unique"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "vente",
+        "achat",
+        "reception",
+        "inventaire"
+      ],
+      "description": "Type de transaction"
+    },
+    "items": {
+      "type": "array",
+      "description": "Produits de la transaction",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Montant total"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "mvola",
+        "orange_money",
+        "airtel_money"
+      ],
+      "description": "Mode de paiement"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "validated",
+        "cancelled",
+        "pending"
+      ],
+      "description": "Statut de la transaction"
+    },
+    "partner_name": {
+      "type": "string",
+      "description": "Nom du client ou fournisseur"
+    },
+    "table_number": {
+      "type": "string",
+      "description": "Num\u00e9ro de table"
+    },
+    "is_vip": {
+      "type": "boolean",
+      "description": "Table VIP"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes additionnelles"
+    }
+  },
+  "required": [
+    "reference",
+    "type",
+    "total_amount",
+    "status"
+  ]
+}

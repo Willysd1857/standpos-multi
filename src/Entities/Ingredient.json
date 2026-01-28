@@ -1,0 +1,30 @@
+{
+    "name": "Ingredient",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "Nom de l'ingrédient"
+        },
+        "unit": {
+            "type": "string",
+            "description": "Unité de mesure (kg, L, pièce, etc.)"
+        },
+        "stock_quantity": {
+            "type": "number",
+            "description": "Quantité en stock"
+        },
+        "min_stock": {
+            "type": "number",
+            "description": "Stock minimum avant alerte"
+        },
+        "unit_cost": {
+            "type": "number",
+            "description": "Coût unitaire"
+        }
+    },
+    "required": [
+        "name",
+        "unit"
+    ]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "Settings",
+  "type": "object",
+  "properties": {
+    "business_name": {
+      "type": "string",
+      "description": "Nom du snack-bar"
+    },
+    "address": {
+      "type": "string",
+      "description": "Adresse compl\u00e8te"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Num\u00e9ro de t\u00e9l\u00e9phone"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email de contact"
+    },
+    "nif": {
+      "type": "string",
+      "description": "Num\u00e9ro NIF"
+    },
+    "stat": {
+      "type": "string",
+      "description": "Num\u00e9ro STAT"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL du logo"
+    },
+    "receipt_footer": {
+      "type": "string",
+      "description": "Message de pied de page sur la facture"
+    },
+    "timezone": {
+      "type": "string",
+      "description": "Fuseau horaire de l'application (ex: Indian/Antananarivo)"
+    }
+  },
+  "required": []
+}
