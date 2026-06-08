@@ -3,9 +3,11 @@
   publish = "dist"
 
 # Redirection de toutes les requêtes /api vers votre VRAI serveur Render
+# ⚠️ REMPLACEZ l'URL ci-dessous par celle de VOTRE app Render !
+# Exemple: https://standpos-api.onrender.com/api/:splat
 [[redirects]]
   from = "/api/*"
-  to = "https://onrender.com"
+  to = "https://standpos-multi.onrender.com/api/:splat"
   status = 200
   force = true
 
