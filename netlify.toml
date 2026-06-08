@@ -1,23 +1,15 @@
-# ===================================================
-# Netlify Configuration for StandPOS Frontend
-# ===================================================
-# The frontend is hosted on Netlify (static files).
-# All /api/* requests are proxied to the backend on Render.
-# ===================================================
-
 [build]
   command = "npm run build"
   publish = "dist"
 
-# Proxy all API calls to the Render backend
-# Status 200 = reverse proxy (invisible to the browser, no redirect)
+# Redirection de toutes les requêtes /api vers votre VRAI serveur Render
 [[redirects]]
   from = "/api/*"
   to = "https://onrender.com"
   status = 200
   force = true
 
-# SPA fallback: serve index.html for all non-file routes
+# Fallback pour les applications SPA (React/Vite)
 [[redirects]]
   from = "/*"
   to = "/index.html"
