@@ -1,7 +1,8 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './Layout';
-import { PageLoader } from './components/PageLoader';
+import { PageLoader } from "./Components/PageLoader";
+
 import ErrorBoundary from './components/ErrorBoundary';
 import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
