@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import PeriodicAnalysis from '../Components/reports/PeriodicAnalysis';
-import CashflowAnalysis from '../Components/reports/CashflowAnalysis';
-import ProfitabilityAnalysis from '../Components/reports/ProfitabilityAnalysis';
+import PeriodicAnalysis from '../components/reports/PeriodicAnalysis';
+import CashflowAnalysis from '../components/reports/CashflowAnalysis';
+import ProfitabilityAnalysis from '../components/reports/ProfitabilityAnalysis';
 import { BarChart3, LineChart, Wallet, PieChart } from 'lucide-react';
 
 export default function ActivityReports() {
