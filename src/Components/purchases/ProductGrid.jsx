@@ -4,7 +4,7 @@ import ProductCard from './ProductCard';
 export default function ProductGrid({ products, onProductClick, isLoading }) {
     if (isLoading) {
         return (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {[...Array(10)].map((_, i) => (
                     <div key={i} className="bg-white rounded-2xl p-4 animate-pulse">
                         <div className="w-full aspect-square rounded-xl bg-gray-200 mb-3" />
@@ -29,7 +29,7 @@ export default function ProductGrid({ products, onProductClick, isLoading }) {
     }
 
     return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {products.map((product) => (
                 <ProductCard
                     key={product.id}

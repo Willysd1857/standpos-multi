@@ -1,31 +1,38 @@
 import React, { useState } from 'react';
+import { formatQuantity } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, TrendingUp, TrendingDown, ClipboardCheck } from 'lucide-react';
+import { Package, TrendingUp, TrendingDown, ClipboardCheck, ChevronDown } from 'lucide-react';
 
 export default function StockAdjustModal({ open, onClose, product, onConfirm }) {
   const [adjustType, setAdjustType] = useState('reception');
   const [quantity, setQuantity] = useState('');
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
 
   const handleConfirm = async () => {
-    if (!quantity || isNaN(Number(quantity))) return;
-    
+    const qty = Number(quantity);
+    if (isNaN(qty) || qty <= 0) return;
+
     setIsProcessing(true);
-    await onConfirm({
-      type: adjustType,
-      quantity: Number(quantity),
-      notes
-    });
-    setIsProcessing(false);
-    setQuantity('');
-    setNotes('');
-    setAdjustType('reception');
+    try {
+      await onConfirm({
+        type: adjustType,
+        quantity: qty,
+        notes
+      });
+      setQuantity('');
+      setNotes('');
+      setAdjustType('reception');
+    } catch {
+      // error toast handled by parent mutation onError
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (!product) return null;
@@ -50,7 +57,7 @@ export default function StockAdjustModal({ open, onClose, product, onConfirm }) 
           <div className="bg-gray-50 rounded-xl p-4">
             <h4 className="font-semibold text-gray-800">{product.name}</h4>
             <p className="text-sm text-gray-500">
-              Stock actuel: <span className="font-bold text-gray-800">{product.stock || 0}</span> unités
+              Stock actuel: <span className="font-bold text-gray-800">{formatQuantity(product.stock, product.unit)}</span> {product.unit}
             </p>
           </div>
 
@@ -59,21 +66,51 @@ export default function StockAdjustModal({ open, onClose, product, onConfirm }) 
             <Label className="text-sm font-medium text-gray-600 mb-2 block">
               Type d'ajustement
             </Label>
-            <Select value={adjustType} onValueChange={setAdjustType}>
-              <SelectTrigger className="rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {adjustTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    <div className="flex items-center gap-2">
-                      <type.icon className={`w-4 h-4 ${type.color}`} />
-                      {type.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsTypeMenuOpen(!isTypeMenuOpen)}
+                className="flex h-10 w-full items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const selected = adjustTypes.find(t => t.id === adjustType);
+                    const Icon = selected.icon;
+                    return (
+                      <>
+                        <Icon className={`w-4 h-4 ${selected.color}`} />
+                        <span>{selected.label}</span>
+                      </>
+                    );
+                  })()}
+                </div>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </button>
+              {isTypeMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-[60]" onClick={() => setIsTypeMenuOpen(false)} />
+                  <div className="absolute left-0 top-full z-[70] mt-1 w-full rounded-xl border border-gray-100 bg-white p-1 shadow-lg overflow-hidden">
+                    {adjustTypes.map((type) => {
+                      const Icon = type.icon;
+                      return (
+                        <button
+                          key={type.id}
+                          type="button"
+                          onClick={() => {
+                            setAdjustType(type.id);
+                            setIsTypeMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${adjustType === type.id ? 'bg-orange-50 text-orange-700 font-medium' : 'hover:bg-gray-50'}`}
+                        >
+                          <Icon className={`w-4 h-4 ${type.color}`} />
+                          {type.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Quantity */}
@@ -84,6 +121,7 @@ export default function StockAdjustModal({ open, onClose, product, onConfirm }) 
             <Input
               type="number"
               min="0"
+              step="any"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               placeholder={adjustType === 'ajustement' ? 'Ex: 50' : 'Ex: 10'}
@@ -91,7 +129,7 @@ export default function StockAdjustModal({ open, onClose, product, onConfirm }) 
             />
             {adjustType !== 'ajustement' && quantity && (
               <p className="text-xs text-gray-500 mt-1">
-                Nouveau stock: <span className="font-bold">{(product.stock || 0) + Number(quantity)}</span>
+                Nouveau stock: <span className="font-bold">{formatQuantity((product.stock || 0) + Number(quantity), product.unit)}</span> {product.unit}
               </p>
             )}
           </div>

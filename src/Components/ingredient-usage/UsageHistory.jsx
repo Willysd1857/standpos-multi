@@ -48,20 +48,20 @@ export default function UsageHistory({ usages, isLoading, onDelete, onView }) {
                         <p className="text-sm">Cliquez sur "Nouvelle Utilisation" pour commencer</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                    <div className="overflow-x-auto max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
                         <Table>
                             <TableHeader>
-                                <TableRow className="bg-gray-50/50">
-                                    <TableHead className="font-semibold">Date</TableHead>
-                                    <TableHead className="font-semibold">Référence</TableHead>
-                                    <TableHead className="font-semibold">Ingrédients</TableHead>
-                                    <TableHead className="font-semibold">Notes</TableHead>
-                                    <TableHead className="text-right font-semibold w-[120px]">Actions</TableHead>
+                                <TableRow className="bg-gradient-to-r from-orange-50 to-red-50 border-b-2 border-orange-100 hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50">
+                                    <TableHead className="font-bold text-gray-700">Date</TableHead>
+                                    <TableHead className="font-bold text-gray-700">Référence</TableHead>
+                                    <TableHead className="font-bold text-gray-700">Ingrédients</TableHead>
+                                    <TableHead className="font-bold text-gray-700">Notes</TableHead>
+                                    <TableHead className="text-right font-bold text-gray-700 w-[120px]">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filtered.map((usage) => (
-                                    <TableRow key={usage.id} className="hover:bg-gray-50/50">
+                                    <TableRow key={usage.id} className="hover:bg-orange-50/30 transition-colors border-b border-gray-50">
                                         <TableCell className="font-medium text-gray-600">
                                             {formatDate(usage.created_at, 'dd MMM yyyy HH:mm')}
                                         </TableCell>
@@ -75,9 +75,9 @@ export default function UsageHistory({ usages, isLoading, onDelete, onView }) {
                                                 {usage.ingredients?.map((ing, idx) => (
                                                     <div key={idx} className="text-sm">
                                                         <span className="font-semibold text-gray-900">{ing.name}</span>
-                                                        <span className="text-gray-600"> - {ing.quantity} </span>
+                                                        <span className="text-gray-600"> - {Number(ing.quantity).toFixed(2)} {ing.unit} </span>
                                                         <span className="text-xs text-gray-500">
-                                                            (Stock: {ing.stock_before} → {ing.stock_after})
+                                                            (Stock: {Number(ing.stock_before).toFixed(2)} {ing.unit} → {Number(ing.stock_after).toFixed(2)} {ing.unit})
                                                         </span>
                                                     </div>
                                                 ))}

@@ -6,9 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Store, Save, Upload, X } from 'lucide-react';
+import { Store, Save, Upload, X, Edit, ToggleLeft } from 'lucide-react';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 
 export default function BusinessSettings() {
+  const { getCurrencySymbol, convertAmount, convertToAriary } = useCurrency();
   const [formData, setFormData] = useState({
     business_name: '',
     business_address: '',
@@ -19,11 +23,18 @@ export default function BusinessSettings() {
     business_logo: '',
     receipt_footer: '',
     vip_charge: '',
-    timezone: ''
+    timezone: '',
+    currency: 'MGA',
+    exchange_rate_usd: '4500',
+    exchange_rate_eur: '5000',
+    enable_tables: true,
+    enable_ingredient_usage: true,
+    packaging_due_days: 30
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -33,7 +44,12 @@ export default function BusinessSettings() {
   });
 
   useEffect(() => {
-    if (settings) {
+    if (settings && (!isEditMode || !isInitialized)) {
+      // Convert stored Ariary VIP charge to current display currency
+      const displayVipCharge = settings.vip_charge
+        ? convertAmount(settings.vip_charge, settings.currency)
+        : '';
+
       setFormData({
         business_name: settings.business_name || '',
         business_address: settings.business_address || '',
@@ -43,11 +59,18 @@ export default function BusinessSettings() {
         stat: settings.stat || '',
         business_logo: settings.business_logo || '',
         receipt_footer: settings.receipt_footer || '',
-        vip_charge: settings.vip_charge?.toString() || '',
-        timezone: settings.timezone || ''
+        vip_charge: displayVipCharge.toString(),
+        timezone: settings.timezone || '',
+        currency: settings.currency || 'MGA',
+        exchange_rate_usd: settings.exchange_rate_usd?.toString() || '4500',
+        exchange_rate_eur: settings.exchange_rate_eur?.toString() || '5000',
+        enable_tables: settings.enable_tables !== undefined ? Boolean(settings.enable_tables) : true,
+        enable_ingredient_usage: settings.enable_ingredient_usage !== undefined ? Boolean(settings.enable_ingredient_usage) : true,
+        packaging_due_days: settings.packaging_due_days || 30
       });
+      setIsInitialized(true);
     }
-  }, [settings]);
+  }, [settings, convertAmount, isEditMode, isInitialized]);
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
@@ -62,11 +85,21 @@ export default function BusinessSettings() {
     e.preventDefault();
     setIsProcessing(true);
     try {
-      await saveMutation.mutateAsync(formData);
+      // Convert the displayed VIP charge back to Ariary for storage
+      const ariaryVipCharge = convertToAriary(Number(formData.vip_charge), formData.currency);
+
+      const dataToSave = {
+        ...formData,
+        vip_charge: ariaryVipCharge,
+        enable_tables: formData.enable_tables ? 1 : 0,
+        enable_ingredient_usage: formData.enable_ingredient_usage ? 1 : 0
+      };
+
+      await saveMutation.mutateAsync(dataToSave);
       setIsEditMode(false); // Switch to view mode after saving
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
-      alert('Erreur lors de la sauvegarde des paramètres. Veuillez réessayer.');
+      toast.error('Erreur lors de la sauvegarde des paramètres. Veuillez réessayer.');
     } finally {
       setIsProcessing(false);
     }
@@ -82,7 +115,7 @@ export default function BusinessSettings() {
       setFormData({ ...formData, business_logo: result.file_url });
     } catch (error) {
       console.error('Erreur upload:', error);
-      alert('Erreur lors du téléchargement du logo.');
+      toast.error('Erreur lors du téléchargement du logo.');
     } finally {
       setUploadingLogo(false);
     }
@@ -94,7 +127,7 @@ export default function BusinessSettings() {
         <CardHeader className="border-b bg-gradient-to-r from-orange-50 to-amber-50">
           <CardTitle className="flex items-center gap-2 text-xl">
             <Store className="w-6 h-6 text-orange-500" />
-            Informations du Snack-Bar
+            Information principal
           </CardTitle>
           <p className="text-sm text-gray-500 mt-1">
             Ces informations apparaîtront sur vos factures
@@ -144,12 +177,12 @@ export default function BusinessSettings() {
               {/* Business name */}
               <div className="md:col-span-2">
                 <Label className="text-sm font-semibold text-gray-700">
-                  Nom du snack-bar *
+                  Nom de la Boutique *
                 </Label>
                 <Input
                   value={formData.business_name}
                   onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
-                  placeholder="Ex: Moonlight Snack-Bar"
+                  placeholder="Ex: Boutique"
                   className="mt-2 rounded-xl border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                   required
                   disabled={!isEditMode}
@@ -187,7 +220,7 @@ export default function BusinessSettings() {
                   type="email"
                   value={formData.business_email}
                   onChange={(e) => setFormData({ ...formData, business_email: e.target.value })}
-                  placeholder="Ex: contact@moonlight.mg"
+                  placeholder="Ex: contact@standpos.mg"
                   className="mt-2 rounded-xl border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                   disabled={!isEditMode}
                 />
@@ -224,20 +257,22 @@ export default function BusinessSettings() {
               </div>
 
               {/* VIP Charge */}
-              <div className="md:col-span-2">
-                <Label className="text-sm font-semibold text-gray-700">
-                  Frais Table VIP (Ar)
-                  <span className="text-xs text-gray-500 ml-2">(Montant ajouté automatiquement)</span>
-                </Label>
-                <Input
-                  type="number"
-                  value={formData.vip_charge}
-                  onChange={(e) => setFormData({ ...formData, vip_charge: e.target.value })}
-                  placeholder="Ex: 5000"
-                  className="mt-2 rounded-xl border-gray-300 focus:border-orange-500 focus:ring-orange-500"
-                  disabled={!isEditMode}
-                />
-              </div>
+              {formData.enable_tables && (
+                <div className="md:col-span-2">
+                  <Label className="text-sm font-semibold text-gray-700">
+                    Frais Table VIP ({getCurrencySymbol()})
+                    <span className="text-xs text-gray-500 ml-2">(Montant ajouté automatiquement)</span>
+                  </Label>
+                  <Input
+                    type="number"
+                    value={formData.vip_charge}
+                    onChange={(e) => setFormData({ ...formData, vip_charge: e.target.value })}
+                    placeholder="Ex: 5000"
+                    className="mt-2 rounded-xl border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    disabled={!isEditMode}
+                  />
+                </div>
+              )}
 
               {/* Timezone */}
               <div className="md:col-span-2">
@@ -257,6 +292,76 @@ export default function BusinessSettings() {
                 </p>
               </div>
 
+              {/* Currency Selection */}
+              <div className="md:col-span-2">
+                <Label className="text-sm font-semibold text-gray-700">
+                  Devise
+                  <span className="text-xs text-gray-500 ml-2">(Devise d'affichage)</span>
+                </Label>
+                <select
+                  value={formData.currency}
+                  onChange={(e) => {
+                    const newCurrency = e.target.value;
+                    const oldCurrency = formData.currency;
+
+                    // Convert the VIP charge value when switching currency
+                    let newVipCharge = formData.vip_charge;
+                    if (formData.vip_charge) {
+                      const inAriary = convertToAriary(Number(formData.vip_charge), oldCurrency);
+                      newVipCharge = convertAmount(inAriary, newCurrency).toString();
+                    }
+
+                    setFormData({
+                      ...formData,
+                      currency: newCurrency,
+                      vip_charge: newVipCharge
+                    });
+                  }}
+                  className="mt-2 w-full rounded-xl border-2 border-gray-300 focus:border-orange-500 focus:ring-orange-500 px-3 py-2 bg-white"
+                  disabled={!isEditMode}
+                >
+                  <option value="MGA">Ariary (Ar)</option>
+                  <option value="USD">Dollar américain ($)</option>
+                  <option value="EUR">Euro (€)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Les prix sont stockés en Ariary et convertis selon les taux de change ci-dessous.
+                </p>
+              </div>
+
+              {/* Exchange Rates */}
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">
+                  Taux USD → Ariary
+                  <span className="text-xs text-gray-500 ml-2">(1 USD = ? Ar)</span>
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.exchange_rate_usd}
+                  onChange={(e) => setFormData({ ...formData, exchange_rate_usd: e.target.value })}
+                  placeholder="Ex: 4500"
+                  className="mt-2 rounded-xl border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                  disabled={!isEditMode}
+                />
+              </div>
+
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">
+                  Taux EUR → Ariary
+                  <span className="text-xs text-gray-500 ml-2">(1 EUR = ? Ar)</span>
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.exchange_rate_eur}
+                  onChange={(e) => setFormData({ ...formData, exchange_rate_eur: e.target.value })}
+                  placeholder="Ex: 5000"
+                  className="mt-2 rounded-xl border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                  disabled={!isEditMode}
+                />
+              </div>
+
               {/* Receipt footer */}
               <div className="md:col-span-2">
                 <Label className="text-sm font-semibold text-gray-700">
@@ -266,11 +371,51 @@ export default function BusinessSettings() {
                 <Textarea
                   value={formData.receipt_footer}
                   onChange={(e) => setFormData({ ...formData, receipt_footer: e.target.value })}
-                  placeholder="Ex: Merci de votre visite ! À bientôt chez Moonlight"
+                  placeholder="Ex: Merci de votre visite ! À bientôt"
                   className="mt-2 rounded-xl border-gray-300 focus:border-orange-500 focus:ring-orange-500 resize-none"
                   rows={3}
                   disabled={!isEditMode}
                 />
+              </div>
+
+              {/* Délai de retard des consignes */}
+              <div className="md:col-span-2">
+                <Label className="text-sm font-semibold text-gray-700">
+                  Délai de retard des consignes (jours)
+                  <span className="text-xs text-gray-500 ml-2">(Nombre de jours avant qu'un emballage soit en retard)</span>
+                </Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={formData.packaging_due_days}
+                  onChange={(e) => setFormData({ ...formData, packaging_due_days: Number(e.target.value) })}
+                  placeholder="Ex: 30"
+                  className="mt-2 rounded-xl border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                  disabled={!isEditMode}
+                />
+              </div>
+            </div>
+
+            {/* Feature Toggles */}
+            <div className="md:col-span-2 pt-6 border-t border-gray-200">
+              <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <ToggleLeft className="w-4 h-4 text-gray-500" />
+                Fonctionnalités
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-blue-50 border border-blue-100">
+                  <div>
+                    <p className="font-semibold text-gray-800 text-sm">Gestion des tables</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Activer la sélection de tables, numéros de tables et informations de table dans les commandes
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.enable_tables}
+                    onCheckedChange={(checked) => setFormData({ ...formData, enable_tables: checked })}
+                    disabled={!isEditMode}
+                  />
+                </div>
               </div>
             </div>
 
@@ -282,19 +427,33 @@ export default function BusinessSettings() {
                   onClick={() => setIsEditMode(true)}
                   className="px-8 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl shadow-lg shadow-blue-500/30"
                 >
-                  <Save className="w-4 h-4 mr-2" />
+                  <Edit className="w-4 h-4 mr-2" />
                   Modifier
                 </Button>
               )}
               {isEditMode && (
-                <Button
-                  type="submit"
-                  disabled={isProcessing || !formData.business_name}
-                  className="px-8 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl shadow-lg shadow-orange-500/30"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {isProcessing ? 'Enregistrement...' : 'Enregistrer'}
-                </Button>
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditMode(false);
+                      setIsInitialized(false); // Force reload from database
+                    }}
+                    disabled={isProcessing}
+                    className="px-8 rounded-xl border-gray-300 hover:bg-gray-50"
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isProcessing || !formData.business_name}
+                    className="px-8 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl shadow-lg shadow-orange-500/30"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {isProcessing ? 'Enregistrement...' : 'Enregistrer tout'}
+                  </Button>
+                </>
               )}
             </div>
           </form>

@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Database, FileSpreadsheet, Download, RefreshCw, Archive, Upload } from 'lucide-react';
+import { Database, FileSpreadsheet, Download, RefreshCw, Archive, Upload, Trash2, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { base44 } from '@/api/base44Client';
 
 export default function DataSettings() {
+    const { isAdmin } = useAuth();
     const [isExporting, setIsExporting] = useState(false);
+    const [isWiping, setIsWiping] = useState(false);
 
     const handleExport = async () => {
         setIsExporting(true);
@@ -15,26 +20,55 @@ export default function DataSettings() {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Moonlight_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                a.download = `StandPOS_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
             } else {
                 console.error('Export failed');
-                alert('Erreur lors de l\'exportation des données.');
+                toast.error('Erreur lors de l\'exportation des données.');
             }
         } catch (error) {
             console.error('Error exporting data:', error);
-            alert('Une erreur est survenue.');
+            toast.error('Une erreur est survenue.');
         } finally {
             setIsExporting(false);
         }
     };
 
+    const handleResetData = async () => {
+        toast('Cette action va supprimer TOUTES les transactions, ventes, dépenses et journaux d\'audit. Cette action est irréversible. Voulez-vous vraiment continuer ?', {
+            duration: 10000,
+            action: {
+                label: 'OUI, SUPPRIMER TOUT',
+                onClick: async () => {
+                    toast('Dernière confirmation : Êtes-vous ABSOLUMENT certain ?', {
+                        action: {
+                            label: 'CONFIRMER LA SUPPRESSION',
+                            onClick: async () => {
+                                setIsWiping(true);
+                                try {
+                                    await base44.entities.Settings.wipeData();
+                                    toast.success('Réinitialisation terminée. L\'application va redémarrer.');
+                                    setTimeout(() => window.location.reload(), 2000);
+                                } catch (error) {
+                                    console.error('Wipe failed:', error);
+                                    toast.error('Erreur: ' + (error.message || 'La suppression a échoué.'));
+                                } finally {
+                                    setIsWiping(false);
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    };
+
     return (
-        <div className="max-w-3xl">
-            <Card className="border-0 shadow-lg mb-6">
+        <div className="max-w-3xl space-y-6">
+            <Card className="border-0 shadow-lg">
                 <CardHeader className="border-b bg-gradient-to-r from-emerald-50 to-green-50">
                     <CardTitle className="flex items-center gap-2 text-xl">
                         <Database className="w-6 h-6 text-emerald-600" />
@@ -108,33 +142,37 @@ export default function DataSettings() {
                                         const file = e.target.files?.[0];
                                         if (!file) return;
 
-                                        if (!confirm('ATTENTION: La restauration va REMPLACER toutes vos données actuelles. Cette action est irréversible. Êtes-vous sûr ?')) return;
+                                        toast('ATTENTION: La restauration va REMPLACER toutes vos données. Continuer ?', {
+                                            action: {
+                                                label: 'Restaurer',
+                                                onClick: async () => {
+                                                    const formData = new FormData();
+                                                    formData.append('file', file);
 
-                                        const formData = new FormData();
-                                        formData.append('file', file);
-
-                                        setIsExporting(true);
-                                        try {
-                                            const res = await fetch('/api/backup/restore', {
-                                                method: 'POST',
-                                                body: formData
-                                            });
-                                            const data = await res.json();
-                                            if (data.success) {
-                                                alert('Restauration réussie ! L\'application va redémarrer.');
-                                                // Ideally we wait for server to restart
-                                                setTimeout(() => window.location.reload(), 2000);
-                                            } else {
-                                                alert('Erreur: ' + data.error);
+                                                    setIsExporting(true);
+                                                    try {
+                                                        const res = await fetch('/api/backup/restore', {
+                                                            method: 'POST',
+                                                            body: formData
+                                                        });
+                                                        const data = await res.json();
+                                                        if (data.success) {
+                                                            toast.success('Restauration réussie ! L\'application va redémarrer.');
+                                                            setTimeout(() => window.location.reload(), 2000);
+                                                        } else {
+                                                            toast.error('Erreur: ' + data.error);
+                                                        }
+                                                    } catch (err) {
+                                                        console.error(err);
+                                                        toast.error('Erreur technique. Le serveur a peut-être redémarré.');
+                                                        setTimeout(() => window.location.reload(), 2000);
+                                                    } finally {
+                                                        setIsExporting(false);
+                                                        e.target.value = null;
+                                                    }
+                                                }
                                             }
-                                        } catch (err) {
-                                            console.error(err);
-                                            alert('Erreur technique lors de la restauration. Le serveur a peut-être redémarré.');
-                                            setTimeout(() => window.location.reload(), 2000);
-                                        } finally {
-                                            setIsExporting(false);
-                                            e.target.value = null;
-                                        }
+                                        });
                                     }}
                                 />
                                 <Button
@@ -151,6 +189,54 @@ export default function DataSettings() {
                     </div>
                 </CardContent>
             </Card>
+
+            {isAdmin() && (
+                <Card className="border-2 border-red-100 shadow-lg overflow-hidden">
+                    <CardHeader className="border-b bg-red-50">
+                        <CardTitle className="flex items-center gap-2 text-xl text-red-700">
+                            <AlertTriangle className="w-6 h-6" />
+                            Zone de Danger
+                        </CardTitle>
+                        <p className="text-sm text-red-600 mt-1">
+                            Actions irréversibles pour l'administration uniquement
+                        </p>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between p-4 border border-red-200 rounded-xl bg-red-50/30">
+                            <div className="flex items-start gap-4">
+                                <div className="p-3 bg-white rounded-lg border border-red-100 shadow-sm">
+                                    <Trash2 className="w-8 h-8 text-red-600" />
+                                </div>
+                                <div className="max-w-md">
+                                    <h3 className="font-semibold text-red-900">Réinitialiser les Transactions</h3>
+                                    <p className="text-sm text-red-600 mt-1">
+                                        Efface toutes les ventes, dépenses, mouvements de stock, transferts, emballages, stocks des entrepôts et journaux d'audit.
+                                        Les produits et les catégories seront conservés.
+                                    </p>
+                                </div>
+                            </div>
+                            <Button
+                                onClick={handleResetData}
+                                disabled={isWiping}
+                                variant="destructive"
+                                className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20 px-6"
+                            >
+                                {isWiping ? (
+                                    <>
+                                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                        Suppression...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Tout Réinitialiser
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }

@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Printer, X, CheckCircle, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
+import { formatQuantity } from '@/lib/utils';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const paymentLabels = {
     cash: 'Espèces',
@@ -16,6 +18,7 @@ const paymentLabels = {
 };
 
 export default function PurchaseReceiptModal({ open, onClose, purchase }) {
+    const { formatCurrency } = useCurrency();
     const { data: settings } = useQuery({
         queryKey: ['settings'],
         queryFn: () => base44.entities.Settings.get()
@@ -29,29 +32,46 @@ export default function PurchaseReceiptModal({ open, onClose, purchase }) {
         const printWindow = window.open('', '', 'width=400,height=600');
         const receiptContent = document.getElementById('purchase-receipt-content');
 
+        // Fix relative image paths for the new window
+        let content = receiptContent.innerHTML;
+        const origin = window.location.origin;
+        content = content.replace(/src="\/uploads\//g, `src="${origin}/uploads/`);
+
         printWindow.document.write(`
       <html>
         <head>
           <title>Bon d'approvisionnement ${purchase?.id?.slice(0, 8)}</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
           <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
+            * { 
+              margin: 0; 
+              padding: 0; 
+              box-sizing: border-box; 
+              font-family: 'Courier Prime', 'Courier New', monospace !important;
+              font-weight: 700 !important;
+              text-transform: uppercase !important;
+            }
             body { 
-              font-family: 'Courier New', monospace; 
-              padding: 20px;
+              font-family: 'Courier Prime', 'Courier New', monospace !important;
+              padding: 10px;
               font-size: 12px;
-              line-height: 1.4;
+              line-height: 1.3;
+              font-weight: 700;
             }
             .receipt { max-width: 300px; margin: 0 auto; }
-            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #000; padding-bottom: 15px; }
-            .logo { max-width: 80px; margin: 0 auto 10px; }
-            .business-name { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
-            .info-line { font-size: 11px; margin: 2px 0; }
-            .section { margin: 15px 0; }
-            .section-title { font-weight: bold; margin-bottom: 8px; text-transform: uppercase; font-size: 11px; }
-            .item { display: flex; justify-content: space-between; margin: 5px 0; }
-            .divider { border-top: 1px dashed #666; margin: 10px 0; }
-            .total { font-size: 14px; font-weight: bold; margin-top: 10px; padding-top: 10px; border-top: 2px solid #000; }
-            .footer { text-align: center; margin-top: 20px; padding-top: 15px; border-top: 2px dashed #000; font-size: 11px; }
+            .header { display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 8px; gap: 15px; }
+            .header-info { flex: 1; }
+            .logo { width: 80px; height: 60px; object-fit: contain; object-position: right center; }
+            .business-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+            .info-line { font-size: 10px; margin: 1px 0; }
+            .section { margin: 8px 0; }
+            .section-title { font-weight: 700; margin-bottom: 5px; text-transform: uppercase; font-size: 10px; }
+            .item { display: flex; justify-content: space-between; margin: 3px 0; }
+            .divider { border-top: 1px dashed #666; margin: 5px 0; }
+            .total { font-size: 14px; font-weight: 700; margin-top: 5px; padding-top: 5px; border-top: 2px solid #000; }
+            .footer { text-align: center; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #000; font-size: 10px; }
             .badge { 
               background: #10b981;
               color: white;
@@ -59,7 +79,7 @@ export default function PurchaseReceiptModal({ open, onClose, purchase }) {
               border-radius: 4px;
               display: inline-block;
               font-size: 10px;
-              font-weight: bold;
+              font-weight: 700;
               margin-top: 5px;
             }
             @media print {
@@ -69,7 +89,9 @@ export default function PurchaseReceiptModal({ open, onClose, purchase }) {
           </style>
         </head>
         <body>
-          ${receiptContent.innerHTML}
+          <div class="receipt">
+            ${content}
+          </div>
         </body>
       </html>
     `);
@@ -78,7 +100,7 @@ export default function PurchaseReceiptModal({ open, onClose, purchase }) {
         setTimeout(() => {
             printWindow.print();
             printWindow.close();
-        }, 250);
+        }, 500);
     };
 
     if (!purchase) return null;
@@ -108,25 +130,13 @@ export default function PurchaseReceiptModal({ open, onClose, purchase }) {
                     {/* Receipt preview */}
                     <div className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200 max-h-[400px] overflow-y-auto">
                         <div id="purchase-receipt-content" className="receipt">
-                            {/* Header */}
-                            <div className="header">
-                                {businessInfo.business_logo && (
-                                    <img src={businessInfo.business_logo} alt="Logo" className="logo" />
-                                )}
-                                <div className="business-name">{businessInfo.business_name || 'Moonlight Snack-Bar'}</div>
-                                <div className="info-line">Antsirabe • Tél: 0345678901 • Email: moonlight@gmail.com</div>
-                                <div className="info-line">NIF: 123456789 • STAT: 111023456789</div>
-                            </div>
-
                             {/* Title */}
                             <div className="section" style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '5px' }}>
+                                <div style={{ fontSize: '13px', fontWeight: 'bold' }}>
                                     BON D'APPROVISIONNEMENT
                                 </div>
-                                <div className="info-line">N° {purchase.id?.slice(0, 8).toUpperCase()}</div>
+                                <div className="info-line" style={{ fontWeight: 'bold' }}>N° {purchase.id?.slice(0, 8).toUpperCase()}</div>
                             </div>
-
-                            <div className="divider"></div>
 
                             {/* Purchase info */}
                             <div className="section">
@@ -146,36 +156,27 @@ export default function PurchaseReceiptModal({ open, onClose, purchase }) {
                                 </div>
                                 <div className="item">
                                     <span>Statut:</span>
-                                    <span className="badge">{purchase.status === 'validated' ? 'Validé' : 'En attente'}</span>
+                                    <span style={{ fontWeight: 'bold' }}>{purchase.status === 'validated' ? 'Validé' : 'En attente'}</span>
                                 </div>
                             </div>
-
-                            <div className="divider"></div>
 
                             {/* Product details */}
                             <div className="section">
                                 <div className="section-title">Produit approvisionné</div>
-                                <div style={{ fontWeight: 'bold', marginBottom: '5px', fontSize: '13px' }}>
-                                    <Package style={{ width: '12px', height: '12px', display: 'inline', marginRight: '5px' }} />
+                                <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>
                                     {purchase.product_name}
                                 </div>
                                 <div className="item" style={{ fontSize: '11px', paddingLeft: '10px' }}>
-                                    <span>Quantité reçue:</span>
-                                    <span style={{ fontWeight: 'bold' }}>{purchase.quantity}</span>
-                                </div>
-                                <div className="item" style={{ fontSize: '11px', paddingLeft: '10px' }}>
-                                    <span>Prix unitaire:</span>
-                                    <span>{Number(purchase.unit_price).toLocaleString()} Ar</span>
+                                    <span>{formatQuantity(purchase.quantity, purchase.unit)} {purchase.unit} x {formatCurrency(purchase.unit_price || 0)}</span>
+                                    <span>{formatCurrency(purchase.total_amount)}</span>
                                 </div>
                             </div>
-
-                            <div className="divider"></div>
 
                             {/* Total */}
                             <div className="total">
                                 <div className="item" style={{ fontSize: '16px' }}>
-                                    <span>MONTANT TOTAL</span>
-                                    <span>{Number(purchase.total_amount).toLocaleString()} Ar</span>
+                                    <span>TOTAL</span>
+                                    <span>{formatCurrency(purchase.total_amount)}</span>
                                 </div>
                             </div>
 
@@ -189,10 +190,9 @@ export default function PurchaseReceiptModal({ open, onClose, purchase }) {
 
                             {/* Footer */}
                             <div className="footer">
-                                <div>───────────────────</div>
                                 <div style={{ marginTop: '5px' }}>Document d'approvisionnement</div>
-                                <div style={{ fontSize: '10px', marginTop: '5px', color: '#666' }}>
-                                    Powered by Moonlight POS
+                                <div style={{ fontSize: '9px', marginTop: '3px', color: '#666' }}>
+                                    Powered by StandPOS
                                 </div>
                             </div>
                         </div>
@@ -210,7 +210,7 @@ export default function PurchaseReceiptModal({ open, onClose, purchase }) {
                         </Button>
                         <Button
                             onClick={handlePrint}
-                            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl shadow-lg shadow-green-500/30"
+                            className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl shadow-lg shadow-blue-500/30"
                         >
                             <Printer className="w-4 h-4 mr-2" />
                             Imprimer

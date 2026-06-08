@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, X, AlertCircle } from 'lucide-react';
+import { Plus, X, AlertCircle, ChevronDown } from 'lucide-react';
 
 export default function UsageForm({ open, onClose, ingredients, onSubmit, isSubmitting }) {
     const [selectedIngredients, setSelectedIngredients] = useState([]);
     const [notes, setNotes] = useState('');
     const [error, setError] = useState('');
+    const [openMenuIndex, setOpenMenuIndex] = useState(null);
 
     const handleAddIngredient = () => {
         setSelectedIngredients([...selectedIngredients, { ingredient_id: '', quantity: '' }]);
@@ -64,6 +64,7 @@ export default function UsageForm({ open, onClose, ingredients, onSubmit, isSubm
         setSelectedIngredients([]);
         setNotes('');
         setError('');
+        setOpenMenuIndex(null);
         onClose();
     };
 
@@ -109,21 +110,38 @@ export default function UsageForm({ open, onClose, ingredients, onSubmit, isSubm
                                             <div className="flex-1 space-y-3">
                                                 <div>
                                                     <Label className="text-sm">Ingrédient</Label>
-                                                    <Select
-                                                        value={item.ingredient_id}
-                                                        onValueChange={(val) => handleIngredientChange(index, 'ingredient_id', val)}
-                                                    >
-                                                        <SelectTrigger className="mt-1">
-                                                            <SelectValue placeholder="Sélectionner..." />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {ingredients.map(ing => (
-                                                                <SelectItem key={ing.id} value={ing.id}>
-                                                                    {ing.name} (Stock: {ing.stock} {ing.unit})
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
+                                                    <div className="relative mt-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setOpenMenuIndex(openMenuIndex === index ? null : index)}
+                                                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                                                        >
+                                                            <span className="truncate">
+                                                                {ingredient ? `${ingredient.name} (Stock: ${ingredient.stock} ${ingredient.unit})` : "Sélectionner..."}
+                                                            </span>
+                                                            <ChevronDown className="h-4 w-4 opacity-50 flex-shrink-0" />
+                                                        </button>
+                                                        {openMenuIndex === index && (
+                                                            <>
+                                                                <div className="fixed inset-0 z-[60]" onClick={() => setOpenMenuIndex(null)} />
+                                                                <div className="absolute left-0 top-full z-[70] mt-1 w-full max-h-60 overflow-auto rounded-md border bg-white p-1 shadow-md">
+                                                                    {ingredients.map(ing => (
+                                                                        <button
+                                                                            key={ing.id}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                handleIngredientChange(index, 'ingredient_id', ing.id);
+                                                                                setOpenMenuIndex(null);
+                                                                            }}
+                                                                            className={`w-full text-left px-3 py-1.5 text-sm rounded-sm transition-colors ${item.ingredient_id === ing.id ? 'bg-orange-50 text-orange-700 font-medium' : 'hover:bg-gray-50'}`}
+                                                                        >
+                                                                            {ing.name} (Stock: {ing.stock} {ing.unit})
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
 
                                                 <div>

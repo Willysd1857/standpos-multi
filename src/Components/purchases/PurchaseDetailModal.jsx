@@ -3,6 +3,7 @@ import { useAppDate } from '@/hooks/useAppDate';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, Package, Calendar, User, CreditCard, FileText } from 'lucide-react';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const paymentLabels = {
     cash: 'Espèces',
@@ -20,6 +21,7 @@ const statusLabels = {
 
 export default function PurchaseDetailModal({ open, onClose, purchase }) {
     const { formatDate } = useAppDate();
+    const { formatCurrency } = useCurrency();
 
     if (!purchase) return null;
 
@@ -111,12 +113,12 @@ export default function PurchaseDetailModal({ open, onClose, purchase }) {
                                         <div className="flex justify-between items-start mb-2">
                                             <p className="font-semibold text-gray-900">{item.product_name}</p>
                                             <p className="text-sm font-bold text-green-600">
-                                                {Number(item.total).toLocaleString()} Ar
+                                                {formatCurrency(item.total)}
                                             </p>
                                         </div>
                                         <div className="flex justify-between text-sm text-gray-600">
-                                            <span>Quantité: {item.quantity}</span>
-                                            <span>Prix unitaire: {Number(item.unit_price).toLocaleString()} Ar</span>
+                                            <span>Quantité: {item.quantity} {item.unit || ''}</span>
+                                            <span>Prix unitaire: {formatCurrency(item.unit_price)}</span>
                                         </div>
                                     </div>
                                 ))
@@ -126,12 +128,12 @@ export default function PurchaseDetailModal({ open, onClose, purchase }) {
                                     <div className="flex justify-between items-start mb-2">
                                         <p className="font-semibold text-gray-900">{purchase.product_name}</p>
                                         <p className="text-sm font-bold text-green-600">
-                                            {Number(purchase.total_amount).toLocaleString()} Ar
+                                            {formatCurrency(purchase.total_amount)}
                                         </p>
                                     </div>
                                     <div className="flex justify-between text-sm text-gray-600">
-                                        <span>Quantité: {purchase.quantity}</span>
-                                        <span>Prix unitaire: {Number(purchase.unit_price).toLocaleString()} Ar</span>
+                                        <span>Quantité: {purchase.quantity} {purchase.unit || ''}</span>
+                                        <span>Prix unitaire: {formatCurrency(purchase.unit_price)}</span>
                                     </div>
                                 </div>
                             )}
@@ -143,7 +145,7 @@ export default function PurchaseDetailModal({ open, onClose, purchase }) {
                         <div className="flex justify-between items-center">
                             <span className="text-lg font-semibold text-gray-700">Montant Total</span>
                             <span className="text-2xl font-bold text-green-600">
-                                {Number(purchase.total_amount).toLocaleString()} Ar
+                                {formatCurrency(purchase.total_amount)}
                             </span>
                         </div>
                     </div>

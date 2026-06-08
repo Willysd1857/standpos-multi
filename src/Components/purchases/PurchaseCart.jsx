@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Trash2, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function PurchaseCart({ items, onUpdateItem, onRemoveItem, onCheckout, onClear }) {
+    const { formatCurrency, getCurrencySymbol } = useCurrency();
     const total = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
 
     return (
@@ -68,33 +70,36 @@ export default function PurchaseCart({ items, onUpdateItem, onRemoveItem, onChec
                                     <Input
                                         type="number"
                                         value={item.quantity}
-                                        onChange={(e) => onUpdateItem(item.product_id, { quantity: Number(e.target.value) || 0 })}
+                                        onChange={(e) => onUpdateItem(item.product_id, { quantity: e.target.value.replace(',', '.') })}
                                         className="w-16 h-7 text-center text-sm font-semibold"
                                         min="0"
+                                        step="any"
                                     />
                                     <button
-                                        onClick={() => onUpdateItem(item.product_id, { quantity: item.quantity + 1 })}
+                                        onClick={() => onUpdateItem(item.product_id, { quantity: Number(item.quantity) + 1 })}
                                         className="w-7 h-7 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
                                     >
                                         <Plus className="w-3 h-3" />
                                     </button>
+                                    <span className="text-xs font-semibold text-gray-500">{item.unit || ''}</span>
                                     <span className="text-xs text-gray-500">x</span>
                                     <Input
                                         type="number"
                                         value={item.unit_price}
-                                        onChange={(e) => onUpdateItem(item.product_id, { unit_price: Number(e.target.value) || 0 })}
+                                        onChange={(e) => onUpdateItem(item.product_id, { unit_price: e.target.value.replace(',', '.') })}
                                         className="flex-1 h-7 text-sm font-semibold"
                                         placeholder="Prix"
                                         min="0"
+                                        step="any"
                                     />
-                                    <span className="text-xs text-gray-500">Ar</span>
+                                    <span className="text-xs text-gray-500">{getCurrencySymbol()}</span>
                                 </div>
 
                                 {/* Total */}
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-gray-500">Total</span>
                                     <span className="font-bold text-green-600">
-                                        {(item.quantity * item.unit_price).toLocaleString()} Ar
+                                        {formatCurrency(item.quantity * item.unit_price)}
                                     </span>
                                 </div>
                             </motion.div>
@@ -110,7 +115,7 @@ export default function PurchaseCart({ items, onUpdateItem, onRemoveItem, onChec
                     <div className="flex justify-between items-center">
                         <span className="font-semibold text-gray-700">TOTAL</span>
                         <span className="text-2xl font-bold text-green-600">
-                            {total.toLocaleString()} Ar
+                            {formatCurrency(total)}
                         </span>
                     </div>
 

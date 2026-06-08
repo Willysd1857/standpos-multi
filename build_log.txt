@@ -1,0 +1,1517 @@
+﻿  ÔÇó electron-builder  version=23.6.0 os=10.0.22631
+  ÔÇó loaded configuration  file=package.json ("build" field)
+  ÔÇó effective config  config=directories:
+  output: dist_electron
+  buildResources: build
+appId: com.standpos.pos
+productName: StandPOS
+files:
+  - filter:
+      - dist/**/*
+      - server/**/*
+      - electron/**/*
+      - package.json
+win:
+  target: nsis
+  icon: public/icon.png
+asar: true
+npmRebuild: false
+
+  ÔÇó electron-rebuild not required if you use electron-builder, please consider to remove excess dependency from devDependencies
+
+To ensure your native dependencies are always matched electron version, simply add script `"postinstall": "electron-builder install-app-deps" to your `package.json`
+  ÔÇó skipped dependencies rebuild  reason=npmRebuild is set to false
+  ÔÇó packaging       platform=win32 arch=x64 electron=29.4.6 appOutDir=dist_electron\win-unpacked
+  ÔÇó spawning        command=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\app-builder-bin\win\x64\app-builder.exe unpack-electron --configuration [{"platform":"win32","arch":"x64","version":"29.4.6"}] --output C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\win-unpacked --distMacOsAppName Electron.app
+  ÔÇó map async       taskCount=2
+  ÔÇó map async       taskCount=1
+  ÔÇó map async       taskCount=73
+  ÔÇó exited          command=app-builder.exe code=0 pid=9168
+  ÔÇó spawning        command=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\app-builder-bin\win\x64\app-builder.exe node-dep-tree --dir C:\Users\willy\OneDrive\Desktop\StandPOS
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-slot nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-context@radix-ui/react-primitive@radix-ui/react-compose-refs nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-compose-refs nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-compose-refs nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-slot nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-focus-scope@radix-ui/react-context@radix-ui/react-portal@radix-ui/react-primitive@radix-ui/react-use-controllable-state@radix-ui/react-dismissable-layer@radix-ui/react-focus-guardsreact-remove-scroll@radix-ui/primitive@radix-ui/react-compose-refs@radix-ui/react-presencearia-hidden@radix-ui/react-id@radix-ui/react-popper
+                     nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules
+                     round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-compose-refs nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=readdir-globzip-streamarchiver-utilsasync nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=string_decoderabort-controllereventsprocess nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=base64-jsieee754 nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=fast-fifostreamx nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=balanced-match nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=archiver-utilscompress-commons nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=processstring_decoderabort-controllerevents nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=base64-jsieee754 nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=crc32-streamis-streamnormalize-pathcrc-32 nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=processstring_decoderabort-controllerevents nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=base64-jsieee754 nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=crc-32 nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=abort-controllereventsprocessstring_decoder nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=base64-jsieee754 nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=lodashnormalize-pathgraceful-fsis-streamlazystream nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=abort-controllereventsprocessstring_decoder nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=base64-jsieee754 nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=package-json-from-distpath-scurryforeground-childjackspeak nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=balanced-match nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=minipass nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=strip-ansi-cjswrap-ansi-cjsstring-width-cjs nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=string-widthstrip-ansi nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=eastasianwidthstrip-ansi nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=core-util-isinheritsprocess-nextick-argsutil-deprecate nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=safe-buffer nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=qssafe-bufferstatusescontent-dispositioncookie-signaturefinalhandleretagpath-to-regexpsetprototypeofvaryencodeurlescape-htmlon-finishedrange-parsercookiehttp-errorsmethodscontent-typesendproxy-addrutils-mergeacceptsarray-flattenfreshtype-isdepdmerge-descriptorsparseurlbody-parserserve-static
+                     nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules
+                     round=0
+  ÔÇó unresolved deps  unresolved=unpipeencodeurlescape-htmlon-finishedparseurlstatuses nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=range-parserstatusesencodeurlescape-htmldestroyetagfreshhttp-errorsmsdepdon-finished nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=depddestroyon-finishedtype-iscontent-typehttp-errorsqsraw-bodyunpipebytes nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=safer-buffer nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=byteshttp-errorsunpipe nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=safer-buffer nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-primitive@radix-ui/react-use-callback-ref@radix-ui/react-dismissable-layer@radix-ui/react-direction@radix-ui/react-focus-scope@radix-ui/react-focus-guards@radix-ui/react-portalreact-remove-scroll@radix-ui/react-context@radix-ui/react-popper@radix-ui/react-collection@radix-ui/react-id@radix-ui/react-compose-refs@radix-ui/react-presence@radix-ui/react-roving-focusaria-hidden@radix-ui/primitive
+                     nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules
+                     round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-compose-refs nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-slot nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-portal@radix-ui/react-primitive@radix-ui/react-visually-hidden@radix-ui/react-context@radix-ui/react-id@radix-ui/react-popper@radix-ui/react-presence@radix-ui/react-use-controllable-state@radix-ui/primitive@radix-ui/react-compose-refs@radix-ui/react-dismissable-layer
+                     nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules
+                     round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-compose-refs nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=reduxredux-thunkreselect@standard-schema/spec@standard-schema/utils nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-context@radix-ui/react-dialog@radix-ui/react-primitive@radix-ui/react-compose-refs@radix-ui/primitive
+                     nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules
+                     round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-compose-refs nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-use-callback-ref@radix-ui/react-use-is-hydrated@radix-ui/react-use-layout-effect
+                     nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules
+                     round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-slot nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=deep-extendiniminimist nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=mkdirp-classicpumptar-stream nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-slot nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-focus-guardsaria-hidden@radix-ui/react-focus-scope@radix-ui/react-popper@radix-ui/react-use-previous@radix-ui/react-visually-hiddenreact-remove-scroll@radix-ui/react-context@radix-ui/react-compose-refs@radix-ui/react-portal@radix-ui/react-primitive@radix-ui/react-use-layout-effect@radix-ui/primitive@radix-ui/react-collection@radix-ui/react-direction@radix-ui/react-dismissable-layer@radix-ui/react-id@radix-ui/react-use-callback-ref@radix-ui/react-use-controllable-state@radix-ui/number
+                     nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules
+                     round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-compose-refs nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=ansi-styles nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=has-flag nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-dismissable-layer@radix-ui/react-primitive@radix-ui/primitive@radix-ui/react-id@radix-ui/react-focus-guardsaria-hiddenreact-remove-scroll@radix-ui/react-compose-refs@radix-ui/react-focus-scope@radix-ui/react-context@radix-ui/react-portal@radix-ui/react-presence@radix-ui/react-use-controllable-state
+                     nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules
+                     round=0
+  ÔÇó unresolved deps  unresolved=@radix-ui/react-compose-refs nodeModuleDir=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules round=0
+  ÔÇó exited          command=app-builder.exe code=0 pid=10692 out=[{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules","deps":[{"name":"@babel/runtime","version":"7.28.6"},{"name":"@date-fns/tz","version":"1.4.1"},{"name":"@emotion/is-prop-valid","version":"0.8.8","optional":true},{"name":"@emotion/memoize","version":"0.7.4"},{"name":"@floating-ui/core","version":"1.7.3"},{"name":"@floating-ui/dom","version":"1.7.4"},{"name":"@floating-ui/react-dom","version":"2.1.6"},{"name":"@floating-ui/utils","version":"0.2.10"},{"name":"@isaacs/cliui","version":"8.0.2"},{"name":"@pkgjs/parseargs","version":"0.11.0","optional":true},{"name":"@radix-ui/number","version":"1.1.1"},{"name":"@radix-ui/primitive","version":"1.1.3"},{"name":"@radix-ui/react-accordion","version":"1.2.12"},{"name":"@radix-ui/react-alert-dialog","version":"1.1.15"},{"name":"@radix-ui/react-arrow","version":"1.1.7"},{"name":"@radix-ui/react-aspect-ratio","version":"1.1.8"},{"name":"@radix-ui/react-avatar","version":"1.1.11"},{"name":"@radix-ui/react-checkbox","version":"1.3.3"},{"name":"@radix-ui/react-collapsible","version":"1.1.12"},{"name":"@radix-ui/react-collection","version":"1.1.7"},{"name":"@radix-ui/react-compose-refs","version":"1.1.2"},{"name":"@radix-ui/react-context","version":"1.1.2"},{"name":"@radix-ui/react-context-menu","version":"2.2.16"},{"name":"@radix-ui/react-dialog","version":"1.1.15"},{"name":"@radix-ui/react-direction","version":"1.1.1"},{"name":"@radix-ui/react-dismissable-layer","version":"1.1.11"},{"name":"@radix-ui/react-dropdown-menu","version":"2.1.16"},{"name":"@radix-ui/react-focus-guards","version":"1.1.3"},{"name":"@radix-ui/react-focus-scope","version":"1.1.7"},{"name":"@radix-ui/react-hover-card","version":"1.1.15"},{"name":"@radix-ui/react-id","version":"1.1.1"},{"name":"@radix-ui/react-label","version":"2.1.8"},{"name":"@radix-ui/react-menu","version":"2.1.16"},{"name":"@radix-ui/react-menubar","version":"1.1.16"},{"name":"@radix-ui/react-navigation-menu","version":"1.2.14"},{"name":"@radix-ui/react-popover","version":"1.1.15"},{"name":"@radix-ui/react-popper","version":"1.2.8"},{"name":"@radix-ui/react-portal","version":"1.1.9"},{"name":"@radix-ui/react-presence","version":"1.1.5"},{"name":"@radix-ui/react-primitive","version":"2.1.3"},{"name":"@radix-ui/react-progress","version":"1.1.8"},{"name":"@radix-ui/react-radio-group","version":"1.3.8"},{"name":"@radix-ui/react-roving-focus","version":"1.1.11"},{"name":"@radix-ui/react-scroll-area","version":"1.2.10"},{"name":"@radix-ui/react-select","version":"2.2.6"},{"name":"@radix-ui/react-separator","version":"1.1.8"},{"name":"@radix-ui/react-slider","version":"1.3.6"},{"name":"@radix-ui/react-slot","version":"1.2.4"},{"name":"@radix-ui/react-switch","version":"1.2.6"},{"name":"@radix-ui/react-tabs","version":"1.1.13"},{"name":"@radix-ui/react-toast","version":"1.2.15"},{"name":"@radix-ui/react-toggle","version":"1.1.10"},{"name":"@radix-ui/react-toggle-group","version":"1.1.11"},{"name":"@radix-ui/react-tooltip","version":"1.2.8"},{"name":"@radix-ui/react-use-callback-ref","version":"1.1.1"},{"name":"@radix-ui/react-use-controllable-state","version":"1.2.2"},{"name":"@radix-ui/react-use-effect-event","version":"0.0.2"},{"name":"@radix-ui/react-use-escape-keydown","version":"1.1.1"},{"name":"@radix-ui/react-use-is-hydrated","version":"0.1.0"},{"name":"@radix-ui/react-use-layout-effect","version":"1.1.1"},{"name":"@radix-ui/react-use-previous","version":"1.1.1"},{"name":"@radix-ui/react-use-rect","version":"1.1.1"},{"name":"@radix-ui/react-use-size","version":"1.1.1"},{"name":"@radix-ui/react-visually-hidden","version":"1.2.3"},{"name":"@radix-ui/rect","version":"1.1.1"},{"name":"@reduxjs/toolkit","version":"2.11.2"},{"name":"@remix-run/router","version":"1.23.2"},{"name":"@standard-schema/spec","version":"1.1.0"},{"name":"@standard-schema/utils","version":"0.3.0"},{"name":"@tanstack/query-core","version":"5.90.20"},{"name":"@tanstack/react-query","version":"5.90.20"},{"name":"abort-controller","version":"3.0.0"},{"name":"accepts","version":"1.3.8"},{"name":"adler-32","version":"1.3.1"},{"name":"adm-zip","version":"0.5.16"},{"name":"ansi-regex","version":"5.0.1"},{"name":"ansi-styles","version":"4.3.0"},{"name":"append-field","version":"1.0.0"},{"name":"archiver","version":"7.0.1"},{"name":"archiver-utils","version":"5.0.2"},{"name":"aria-hidden","version":"1.2.6"},{"name":"array-flatten","version":"1.1.1"},{"name":"async","version":"3.2.6"},{"name":"balanced-match","version":"1.0.2"},{"name":"bare-events","version":"2.8.2"},{"name":"base64-arraybuffer","version":"1.0.2"},{"name":"base64-js","version":"1.5.1"},{"name":"better-sqlite3","version":"11.10.0","hasPrebuildInstall":true},{"name":"bindings","version":"1.5.0"},{"name":"bl","version":"4.1.0"},{"name":"body-parser","version":"1.20.4"},{"name":"buffer","version":"5.7.1"},{"name":"buffer-from","version":"1.1.2"},{"name":"busboy","version":"1.6.0"},{"name":"bytes","version":"3.1.2"},{"name":"call-bind-apply-helpers","version":"1.0.2"},{"name":"call-bound","version":"1.0.4"},{"name":"canvg","version":"3.0.11","optional":true},{"name":"cfb","version":"1.2.2"},{"name":"chalk","version":"4.1.2"},{"name":"class-variance-authority","version":"0.7.1"},{"name":"cliui","version":"8.0.1"},{"name":"clsx","version":"2.1.1"},{"name":"cmdk","version":"1.1.1"},{"name":"codepage","version":"1.15.0"},{"name":"color-convert","version":"2.0.1"},{"name":"color-name","version":"1.1.4"},{"name":"compress-commons","version":"6.0.2"},{"name":"concat-stream","version":"2.0.0"},{"name":"concurrently","version":"9.2.1"},{"name":"content-disposition","version":"0.5.4"},{"name":"content-type","version":"1.0.5"},{"name":"cookie","version":"0.7.2"},{"name":"cookie-signature","version":"1.0.7"},{"name":"core-js","version":"3.48.0","optional":true},{"name":"core-util-is","version":"1.0.2"},{"name":"cors","version":"2.8.6"},{"name":"crc-32","version":"1.2.2"},{"name":"crc32-stream","version":"6.0.0"},{"name":"cross-spawn","version":"7.0.6"},{"name":"css-line-break","version":"2.1.0"},{"name":"d3-array","version":"3.2.4"},{"name":"d3-color","version":"3.1.0"},{"name":"d3-ease","version":"3.0.1"},{"name":"d3-format","version":"3.1.2"},{"name":"d3-interpolate","version":"3.0.1"},{"name":"d3-path","version":"3.1.0"},{"name":"d3-scale","version":"4.0.2"},{"name":"d3-shape","version":"3.2.0"},{"name":"d3-time","version":"3.1.0"},{"name":"d3-time-format","version":"4.1.0"},{"name":"d3-timer","version":"3.0.1"},{"name":"date-fns","version":"4.1.0"},{"name":"date-fns-jalali","version":"4.1.0-0"},{"name":"decimal.js-light","version":"2.5.1"},{"name":"decompress-response","version":"6.0.0"},{"name":"deep-extend","version":"0.6.0"},{"name":"depd","version":"2.0.0"},{"name":"destroy","version":"1.2.0"},{"name":"detect-libc","version":"2.1.2"},{"name":"detect-node-es","version":"1.1.0"},{"name":"dompurify","version":"3.3.1","optional":true},{"name":"dunder-proto","version":"1.0.1"},{"name":"eastasianwidth","version":"0.2.0"},{"name":"ee-first","version":"1.1.1"},{"name":"emoji-regex","version":"8.0.0"},{"name":"encodeurl","version":"2.0.0"},{"name":"end-of-stream","version":"1.4.5"},{"name":"es-define-property","version":"1.0.1"},{"name":"es-errors","version":"1.3.0"},{"name":"es-object-atoms","version":"1.1.1"},{"name":"es-toolkit","version":"1.44.0"},{"name":"escalade","version":"3.2.0"},{"name":"escape-html","version":"1.0.3"},{"name":"etag","version":"1.8.1"},{"name":"event-target-shim","version":"5.0.1"},{"name":"eventemitter3","version":"5.0.4"},{"name":"events","version":"3.3.0"},{"name":"events-universal","version":"1.0.1"},{"name":"expand-template","version":"2.0.3"},{"name":"express","version":"4.22.1"},{"name":"fast-fifo","version":"1.3.2"},{"name":"fast-png","version":"6.4.0"},{"name":"fflate","version":"0.8.2"},{"name":"file-uri-to-path","version":"1.0.0"},{"name":"finalhandler","version":"1.3.2"},{"name":"foreground-child","version":"3.3.1"},{"name":"forwarded","version":"0.2.0"},{"name":"frac","version":"1.1.2"},{"name":"framer-motion","version":"10.18.0"},{"name":"fresh","version":"0.5.2"},{"name":"fs-constants","version":"1.0.0"},{"name":"fs-extra","version":"11.3.3"},{"name":"function-bind","version":"1.1.2"},{"name":"get-caller-file","version":"2.0.5"},{"name":"get-intrinsic","version":"1.3.0"},{"name":"get-nonce","version":"1.0.1"},{"name":"get-proto","version":"1.0.1"},{"name":"github-from-package","version":"0.0.0"},{"name":"gopd","version":"1.2.0"},{"name":"graceful-fs","version":"4.2.11"},{"name":"has-flag","version":"4.0.0"},{"name":"has-symbols","version":"1.1.0"},{"name":"hasown","version":"2.0.2"},{"name":"html2canvas","version":"1.4.1","optional":true},{"name":"http-errors","version":"2.0.1"},{"name":"ieee754","version":"1.2.1"},{"name":"immer","version":"10.2.0"},{"name":"inherits","version":"2.0.4"},{"name":"ini","version":"1.3.8"},{"name":"internmap","version":"2.0.3"},{"name":"iobuffer","version":"5.4.0"},{"name":"ipaddr.js","version":"1.9.1"},{"name":"is-fullwidth-code-point","version":"3.0.0"},{"name":"is-stream","version":"2.0.1"},{"name":"isexe","version":"2.0.0"},{"name":"jackspeak","version":"3.4.3"},{"name":"js-tokens","version":"4.0.0"},{"name":"jsonfile","version":"6.2.0"},{"name":"jspdf","version":"4.0.0"},{"name":"jspdf-autotable","version":"5.0.7"},{"name":"lazystream","version":"1.0.1"},{"name":"lodash","version":"4.17.23"},{"name":"loose-envify","version":"1.4.0"},{"name":"lucide-react","version":"0.263.1"},{"name":"math-intrinsics","version":"1.1.0"},{"name":"media-typer","version":"0.3.0"},{"name":"merge-descriptors","version":"1.0.3"},{"name":"methods","version":"1.1.2"},{"name":"mime-db","version":"1.52.0"},{"name":"mime-types","version":"2.1.35"},{"name":"minimist","version":"1.2.8"},{"name":"minipass","version":"5.0.0"},{"name":"mkdirp","version":"0.5.6"},{"name":"mkdirp-classic","version":"0.5.3"},{"name":"ms","version":"2.1.3"},{"name":"multer","version":"2.0.2"},{"name":"napi-build-utils","version":"2.0.0","napiVersions":[22310]},{"name":"negotiator","version":"0.6.3"},{"name":"node-abi","version":"3.87.0"},{"name":"node-machine-id","version":"1.1.12"},{"name":"normalize-path","version":"3.0.0"},{"name":"object-assign","version":"4.1.1"},{"name":"object-inspect","version":"1.13.4"},{"name":"on-finished","version":"2.4.1"},{"name":"once","version":"1.4.0"},{"name":"package-json-from-dist","version":"1.0.1"},{"name":"pako","version":"2.1.0"},{"name":"parseurl","version":"1.3.3"},{"name":"path-key","version":"3.1.1"},{"name":"path-scurry","version":"1.11.1"},{"name":"path-to-regexp","version":"0.1.12"},{"name":"performance-now","version":"2.1.0"},{"name":"prebuild-install","version":"7.1.3"},{"name":"process","version":"0.11.10"},{"name":"process-nextick-args","version":"2.0.1"},{"name":"proxy-addr","version":"2.0.7"},{"name":"pump","version":"3.0.3"},{"name":"qs","version":"6.14.1"},{"name":"raf","version":"3.4.1"},{"name":"range-parser","version":"1.2.1"},{"name":"raw-body","version":"2.5.3"},{"name":"rc","version":"1.2.8"},{"name":"react","version":"18.3.1"},{"name":"react-day-picker","version":"9.13.0"},{"name":"react-dom","version":"18.3.1"},{"name":"react-redux","version":"9.2.0"},{"name":"react-remove-scroll","version":"2.7.2"},{"name":"react-remove-scroll-bar","version":"2.3.8"},{"name":"react-router","version":"6.30.3"},{"name":"react-router-dom","version":"6.30.3"},{"name":"react-style-singleton","version":"2.2.3"},{"name":"readable-stream","version":"3.6.2"},{"name":"readdir-glob","version":"1.1.3"},{"name":"recharts","version":"3.7.0"},{"name":"redux","version":"5.0.1"},{"name":"redux-thunk","version":"3.1.0"},{"name":"regenerator-runtime","version":"0.13.11"},{"name":"require-directory","version":"2.1.1"},{"name":"reselect","version":"5.1.1"},{"name":"rgbcolor","version":"1.0.1"},{"name":"rxjs","version":"7.8.2"},{"name":"safe-buffer","version":"5.2.1"},{"name":"safer-buffer","version":"2.1.2"},{"name":"scheduler","version":"0.23.2"},{"name":"send","version":"0.19.2"},{"name":"serve-static","version":"1.16.3"},{"name":"setprototypeof","version":"1.2.0"},{"name":"shebang-command","version":"2.0.0"},{"name":"shebang-regex","version":"3.0.0"},{"name":"shell-quote","version":"1.8.3"},{"name":"side-channel","version":"1.1.0"},{"name":"side-channel-list","version":"1.0.0"},{"name":"side-channel-map","version":"1.0.1"},{"name":"side-channel-weakmap","version":"1.0.2"},{"name":"signal-exit","version":"4.1.0"},{"name":"simple-concat","version":"1.0.1"},{"name":"simple-get","version":"4.0.1"},{"name":"sonner","version":"2.0.7"},{"name":"ssf","version":"0.11.2"},{"name":"stackblur-canvas","version":"2.7.0"},{"name":"statuses","version":"2.0.2"},{"name":"streamsearch","version":"1.1.0"},{"name":"streamx","version":"2.23.0"},{"name":"string-width","version":"4.2.3"},{"name":"string-width-cjs","version":"4.2.3"},{"name":"string_decoder","version":"1.3.0"},{"name":"strip-ansi","version":"6.0.1"},{"name":"strip-ansi-cjs","version":"6.0.1"},{"name":"supports-color","version":"8.1.1"},{"name":"svg-pathdata","version":"6.0.3"},{"name":"tailwind-merge","version":"3.4.0"},{"name":"tar-fs","version":"2.1.4"},{"name":"tar-stream","version":"2.2.0"},{"name":"text-decoder","version":"1.2.3"},{"name":"text-segmentation","version":"1.0.3"},{"name":"tiny-invariant","version":"1.3.3"},{"name":"toidentifier","version":"1.0.1"},{"name":"tree-kill","version":"1.2.2"},{"name":"tslib","version":"2.8.1"},{"name":"tunnel-agent","version":"0.6.0"},{"name":"type-is","version":"1.6.18"},{"name":"typedarray","version":"0.0.6"},{"name":"universalify","version":"2.0.1"},{"name":"unpipe","version":"1.0.0"},{"name":"use-callback-ref","version":"1.3.3"},{"name":"use-sidecar","version":"1.1.3"},{"name":"use-sync-external-store","version":"1.6.0"},{"name":"util-deprecate","version":"1.0.2"},{"name":"utils-merge","version":"1.0.1"},{"name":"utrie","version":"1.0.2"},{"name":"uuid","version":"11.1.0"},{"name":"vary","version":"1.1.2"},{"name":"victory-vendor","version":"37.3.6"},{"name":"which","version":"2.0.2"},{"name":"wmf","version":"1.0.2"},{"name":"word","version":"0.3.0"},{"name":"wrap-ansi","version":"7.0.0"},{"name":"wrap-ansi-cjs","version":"7.0.0"},{"name":"wrappy","version":"1.0.2"},{"name":"xlsx","version":"0.18.5"},{"name":"xtend","version":"4.0.2"},{"name":"y18n","version":"5.0.8"},{"name":"yargs","version":"17.7.2"},{"name":"yargs-parser","version":"21.1.1"},{"name":"zip-stream","version":"6.0.1"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\archiver\\node_modules","deps":[{"name":"b4a","version":"1.7.3"},{"name":"buffer","version":"6.0.3"},{"name":"buffer-crc32","version":"1.0.0"},{"name":"readable-stream","version":"4.7.0"},{"name":"tar-stream","version":"3.1.7"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\archiver-utils\\node_modules","deps":[{"name":"brace-expansion","version":"2.0.2"},{"name":"buffer","version":"6.0.3"},{"name":"glob","version":"10.5.0"},{"name":"minimatch","version":"9.0.5"},{"name":"minipass","version":"7.1.2"},{"name":"readable-stream","version":"4.7.0"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\body-parser\\node_modules","deps":[{"name":"debug","version":"2.6.9"},{"name":"iconv-lite","version":"0.4.24"},{"name":"ms","version":"2.0.0"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\chalk\\node_modules","deps":[{"name":"supports-color","version":"7.2.0"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\compress-commons\\node_modules","deps":[{"name":"buffer","version":"6.0.3"},{"name":"readable-stream","version":"4.7.0"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\crc32-stream\\node_modules","deps":[{"name":"buffer","version":"6.0.3"},{"name":"readable-stream","version":"4.7.0"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\decompress-response\\node_modules","deps":[{"name":"mimic-response","version":"3.1.0"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\express\\node_modules","deps":[{"name":"debug","version":"2.6.9"},{"name":"ms","version":"2.0.0"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\finalhandler\\node_modules","deps":[{"name":"debug","version":"2.6.9"},{"name":"ms","version":"2.0.0"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\lazystream\\node_modules","deps":[{"name":"isarray","version":"1.0.0"},{"name":"readable-stream","version":"2.3.8"},{"name":"safe-buffer","version":"5.1.2"},{"name":"string_decoder","version":"1.1.1"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\node-abi\\node_modules","deps":[{"name":"semver","version":"7.7.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\path-scurry\\node_modules","deps":[{"name":"lru-cache","version":"10.4.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\raw-body\\node_modules","deps":[{"name":"iconv-lite","version":"0.4.24"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\rc\\node_modules","deps":[{"name":"strip-json-comments","version":"2.0.1"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\readdir-glob\\node_modules","deps":[{"name":"brace-expansion","version":"2.0.2"},{"name":"minimatch","version":"5.1.6"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\send\\node_modules","deps":[{"name":"debug","version":"2.6.9"},{"name":"mime","version":"1.6.0"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\tar-fs\\node_modules","deps":[{"name":"chownr","version":"1.1.4"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\text-decoder\\node_modules","deps":[{"name":"b4a","version":"1.7.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\zip-stream\\node_modules","deps":[{"name":"buffer","version":"6.0.3"},{"name":"readable-stream","version":"4.7.0"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@isaacs\\cliui\\node_modules","deps":[{"name":"ansi-regex","version":"6.2.2"},{"name":"ansi-styles","version":"6.2.3"},{"name":"emoji-regex","version":"9.2.2"},{"name":"string-width","version":"5.1.2"},{"name":"strip-ansi","version":"7.1.2"},{"name":"wrap-ansi","version":"8.1.0"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-alert-dialog\\node_modules","deps":[{"name":"@radix-ui/react-slot","version":"1.2.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-aspect-ratio\\node_modules","deps":[{"name":"@radix-ui/react-primitive","version":"2.1.4"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-avatar\\node_modules","deps":[{"name":"@radix-ui/react-context","version":"1.1.3"},{"name":"@radix-ui/react-primitive","version":"2.1.4"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-collection\\node_modules","deps":[{"name":"@radix-ui/react-slot","version":"1.2.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-dialog\\node_modules","deps":[{"name":"@radix-ui/react-slot","version":"1.2.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-label\\node_modules","deps":[{"name":"@radix-ui/react-primitive","version":"2.1.4"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-menu\\node_modules","deps":[{"name":"@radix-ui/react-slot","version":"1.2.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-popover\\node_modules","deps":[{"name":"@radix-ui/react-slot","version":"1.2.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-primitive\\node_modules","deps":[{"name":"@radix-ui/react-slot","version":"1.2.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-progress\\node_modules","deps":[{"name":"@radix-ui/react-context","version":"1.1.3"},{"name":"@radix-ui/react-primitive","version":"2.1.4"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-select\\node_modules","deps":[{"name":"@radix-ui/react-slot","version":"1.2.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-separator\\node_modules","deps":[{"name":"@radix-ui/react-primitive","version":"2.1.4"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@radix-ui\\react-tooltip\\node_modules","deps":[{"name":"@radix-ui/react-slot","version":"1.2.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\@reduxjs\\toolkit\\node_modules","deps":[{"name":"immer","version":"11.1.3"}]},{"dir":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\node_modules\\send\\node_modules\\debug\\node_modules","deps":[{"name":"ms","version":"2.0.0"}]}]
+  ÔÇó getPublishConfigsForUpdateInfo: no publishConfigs, detect using repository info
+npx : 
+2026-02-08T10:00:57.572Z 
+electron-builder:publish getP
+ublishConfigsForUpdateInfo: 
+null
+Au caractère Ligne:1 : 17
++ $env:DEBUG="*"; npx 
+electron-builder --win nsis 
+*>&1 | Out-File -File ...
++                 ~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (2026-02  
+  -08T10:0...pdateInfo: nu   
+ ll:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+  ÔÇó spawning        command=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\app-builder-bin\win\x64\app-builder.exe icon --format ico --root C:\Users\willy\OneDrive\Desktop\StandPOS\build --root C:\Users\willy\OneDrive\Desktop\StandPOS --out C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\.icon-ico --input public/icon.png
+  ÔÇó path doesn't exist  path=C:\Users\willy\OneDrive\Desktop\StandPOS\build\public\icon.png
+  ÔÇó path resolved   path=C:\Users\willy\OneDrive\Desktop\StandPOS\public\icon.png outputFormat=ico
+  ÔÇó exited          command=app-builder.exe code=0 pid=4904 out={"icons":[{"file":"C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\dist_electron\\.icon-ico\\icon.ico","size":0}],"isFallback":false}
+  ÔÇó spawning        command=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\app-builder-bin\win\x64\app-builder.exe rcedit --args ["C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\dist_electron\\win-unpacked\\StandPOS.exe","--set-version-string","FileDescription","StandPOS","--set-version-string","ProductName","StandPOS","--set-version-string","LegalCopyright","Copyright ┬® 2026 Willy Sd","--set-file-version","1.0.0","--set-product-version","1.0.0.0","--set-version-string","InternalName","StandPOS","--set-version-string","OriginalFilename","","--set-version-string","CompanyName","Willy Sd","--set-icon","C:\\Users\\willy\\OneDrive\\Desktop\\StandPOS\\dist_electron\\.icon-ico\\icon.ico"]
+  ÔÇó found existing  path=C:\Users\willy\AppData\Local\electron-builder\Cache\winCodeSign\winCodeSign-2.6.0
+  ÔÇó execute command  command='C:\Users\willy\AppData\Local\electron-builder\Cache\winCodeSign\winCodeSign-2.6.0\rcedit-x64.exe' 'C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\win-unpacked\StandPOS.exe' --set-version-string FileDescription StandPOS --set-version-string ProductName StandPOS --set-version-string LegalCopyright 'Copyright ┬® 2026 Willy Sd' --set-file-version 1.0.0 --set-product-version 1.0.0.0 --set-version-string InternalName StandPOS --set-version-string OriginalFilename '' --set-version-string CompanyName 'Willy Sd' --set-icon 'C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\.icon-ico\icon.ico'
+                     workingDirectory=
+  ÔÇó command executed  executable=C:\Users\willy\AppData\Local\electron-builder\Cache\winCodeSign\winCodeSign-2.6.0\rcedit-x64.exe
+  ÔÇó exited          command=app-builder.exe code=0 pid=2700
+wine&sign: 1s 266ms
+  ÔÇó building        target=nsis file=dist_electron\StandPOS Setup 1.0.0.exe archs=x64 oneClick=true perMachine=false
+  ÔÇó spawning        command=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\app-builder-bin\win\x64\app-builder.exe download-artifact --name nsis-3.0.4.1 --url https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-3.0.4.1/nsis-3.0.4.1.7z --sha512 VKMiizYdmNdJOWpRGz4trl4lD++BvYP2irAXpMilheUP0pc93iKlWAoP843Vlraj8YG19CVn0j+dCo/hURz9+Q==
+  ÔÇó found existing  path=C:\Users\willy\AppData\Local\electron-builder\Cache\nsis\nsis-3.0.4.1
+  ÔÇó exited          command=app-builder.exe code=0 pid=13688 out=C:\Users\willy\AppData\Local\electron-builder\Cache\nsis\nsis-3.0.4.1
+  ÔÇó executing       file=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\7zip-bin\win\x64\7za.exe args=a -bd -bb -mx=9 -md=1m -mtc=off -ms=off -mtm=off -mta=off C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\standpos-1.0.0-x64.nsis.7z . -xr!*.avi -xr!*.mov -xr!*.m4v -xr!*.mp4 -xr!*.m4p -xr!*.qt -xr!*.mkv -xr!*.webm -xr!*.vmdk cwd=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\win-unpacked
+  ÔÇó executed        file=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\7zip-bin\win\x64\7za.exe stdout=
+7-Zip (a) 19.00 (x64) : Copyright (c) 1999-2018 Igor Pavlov : 2019-02-21
+                      Scanning the drive:
+2 folders, 73 files, 477976384 bytes (456 MiB)
+                      Creating archive: C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\standpos-1.0.0-x64.nsis.7z
+                      Add new data to archive: 2 folders, 73 files, 477976384 bytes (456 MiB)
+                      + chrome_100_percent.pak
++ chrome_200_percent.pak
++ icudtl.dat
++ LICENSE.electron.txt
++ LICENSES.chromium.html
++ locales\af.pak
++ locales\am.pak
++ locales\ar.pak
++ locales\bg.pak
++ locales\bn.pak
++ locales\ca.pak
++ locales\cs.pak
++ locales\da.pak
++ locales\de.pak
++ locales\el.pak
++ locales\en-GB.pak
++ locales\en-US.pak
++ locales\es-419.pak
++ locales\es.pak
++ locales\et.pak
++ locales\fa.pak
++ locales\fi.pak
++ locales\fil.pak
++ locales\fr.pak
++ locales\gu.pak
++ locales\he.pak
++ locales\hi.pak
++ locales\hr.pak
++ locales\hu.pak
++ locales\id.pak
++ locales\it.pak
++ locales\ja.pak
++ locales\kn.pak
++ locales\ko.pak
++ locales\lt.pak
++ locales\lv.pak
++ locales\ml.pak
++ locales\mr.pak
++ locales\ms.pak
++ locales\nb.pak
++ locales\nl.pak
++ locales\pl.pak
++ locales\pt-BR.pak
++ locales\pt-PT.pak
++ locales\ro.pak
++ locales\ru.pak
++ locales\sk.pak
++ locales\sl.pak
++ locales\sr.pak
++ locales\sv.pak
++ locales\sw.pak
++ locales\ta.pak
++ locales\te.pak
++ locales\th.pak
++ locales\tr.pak
++ locales\uk.pak
++ locales\ur.pak
++ locales\vi.pak
++ locales\zh-CN.pak
++ locales\zh-TW.pak
++ resources.pak
++ resources\app.asar
++ snapshot_blob.bin
++ v8_context_snapshot.bin
++ vk_swiftshader_icd.json
++ d3dcompiler_47.dll
++ ffmpeg.dll
++ libEGL.dll
++ libGLESv2.dll
++ resources\elevate.exe
++ StandPOS.exe
++ vk_swiftshader.dll
++ vulkan-1.dll
+                      Files read from disk: 73
+Archive size: 135502622 bytes (130 MiB)
+Everything is Ok
+
+nsis package, x64: 74s 677ms
+  ÔÇó executing       file=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\7zip-bin\win\x64\7za.exe args=l C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\standpos-1.0.0-x64.nsis.7z
+  ÔÇó executed        file=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\7zip-bin\win\x64\7za.exe stdout=
+7-Zip (a) 19.00 (x64) : Copyright (c) 1999-2018 Igor Pavlov : 2019-02-21
+                      Scanning the drive for archives:
+1 file, 135502622 bytes (130 MiB)
+                      Listing archive: C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\standpos-1.0.0-x64.nsis.7z
+                      --
+Path = C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\standpos-1.0.0-x64.nsis.7z
+Type = 7z
+Physical Size = 135502622
+Headers Size = 1446
+Method = LZMA2:20 LZMA:20 BCJ2
+Solid = -
+Blocks = 73
+                         Date      Time    Attr         Size   Compressed  Name
+------------------- ----- ------------ ------------  ------------------------
+                    D....            0            0  locales
+                    D....            0            0  resources
+                    ....A       154426       143487  chrome_100_percent.pak
+                    ....A       235060       220618  chrome_200_percent.pak
+                    ....A     10717680      3447515  icudtl.dat
+                    ....A         1096          690  LICENSE.electron.txt
+                    ....A      9174266       243100  LICENSES.chromium.html
+                    ....A       489715       119615  locales\af.pak
+                    ....A       794986       135586  locales\am.pak
+                    ....A       871955       139473  locales\ar.pak
+                    ....A       906398       134901  locales\bg.pak
+                    ....A      1170199       140957  locales\bn.pak
+                    ....A       551632       123127  locales\ca.pak
+                    ....A       568567       132508  locales\cs.pak
+                    ....A       513715       120346  locales\da.pak
+                    ....A       549246       127050  locales\de.pak
+                    ....A       994931       142384  locales\el.pak
+                    ....A       447042       111287  locales\en-GB.pak
+                    ....A       451080       111552  locales\en-US.pak
+                    ....A       543303       122752  locales\es-419.pak
+                    ....A       543232       122179  locales\es.pak
+                    ....A       493540       123050  locales\et.pak
+                    ....A       808052       131365  locales\fa.pak
+                    ....A       504052       122949  locales\fi.pak
+                    ....A       569703       122915  locales\fil.pak
+                    ....A       587932       127218  locales\fr.pak
+                    ....A      1148544       139707  locales\gu.pak
+                    ....A       708276       128670  locales\he.pak
+                    ....A      1211426       144189  locales\hi.pak
+                    ....A       548310       128199  locales\hr.pak
+                    ....A       590492       134285  locales\hu.pak
+                    ....A       486837       111570  locales\id.pak
+                    ....A       536254       121243  locales\it.pak
+                    ....A       655212       117417  locales\ja.pak
+                    ....A      1316964       141462  locales\kn.pak
+                    ....A       553673       114158  locales\ko.pak
+                    ....A       594260       130578  locales\lt.pak
+                    ....A       593573       131663  locales\lv.pak
+                    ....A      1369647       145163  locales\ml.pak
+                    ....A      1125467       136789  locales\mr.pak
+                    ....A       510468       113579  locales\ms.pak
+                    ....A       495339       117779  locales\nb.pak
+                    ....A       511257       120787  locales\nl.pak
+                    ....A       571219       133107  locales\pl.pak
+                    ....A       537107       122493  locales\pt-BR.pak
+                    ....A       539844       121237  locales\pt-PT.pak
+                    ....A       559523       124867  locales\ro.pak
+                    ....A       919180       141229  locales\ru.pak
+                    ....A       577498       135447  locales\sk.pak
+                    ....A       554338       128035  locales\sl.pak
+                    ....A       853696       134934  locales\sr.pak
+                    ....A       498248       117829  locales\sv.pak
+                    ....A       524797       120958  locales\sw.pak
+                    ....A      1358123       140665  locales\ta.pak
+                    ....A      1255925       141355  locales\te.pak
+                    ....A      1055231       124117  locales\th.pak
+                    ....A       535874       122300  locales\tr.pak
+                    ....A       918373       139675  locales\uk.pak
+                    ....A       801665       131378  locales\ur.pak
+                    ....A       634523       121566  locales\vi.pak
+                    ....A       458528       113416  locales\zh-CN.pak
+                    ....A       453011       111845  locales\zh-TW.pak
+                    ....A      5281234      5245453  resources.pak
+                    ....A    213864543     59331463  resources\app.asar
+                    ....A       306214        51519  snapshot_blob.bin
+                    ....A       679161       119682  v8_context_snapshot.bin
+                    ....A          106           96  vk_swiftshader_icd.json
+                    ....A      4916712      1561634  d3dcompiler_47.dll
+                    ....A      2866176       936326  ffmpeg.dll
+                    ....A       479232       166145  libEGL.dll
+                    ....A      7692800      2147206  libGLESv2.dll
+                    ....A       107520        49095  resources\elevate.exe
+                    ....A    176311808     53280804  StandPOS.exe
+                    ....A      5312000      1274953  vk_swiftshader.dll
+                    ....A       954368       266485  vulkan-1.dll
+------------------- ----- ------------ ------------  ------------------------
+                             477976384    135501176  73 files, 2 folders
+
+2026-02-08T10:02:14.277Z 
+electron-builder:nsis {
+  APP_ID: 'com.standpos.pos',
+  APP_GUID: '7a2c5d61-eba7-5b
+dc-ab34-9f1f46fab4de',
+  UNINSTALL_APP_KEY: '7a2c5d6
+1-eba7-5bdc-ab34-9f1f46fab4de
+',
+  PRODUCT_NAME: 'StandPOS',
+  PRODUCT_FILENAME: 
+'StandPOS',
+  APP_FILENAME: 'standpos',
+  APP_DESCRIPTION: 'StandPOS 
+desktop app',
+  VERSION: '1.0.0',
+  PROJECT_DIR: 'C:\\Users\\wi
+lly\\OneDrive\\Desktop\\Stand
+POS',
+  BUILD_RESOURCES_DIR: 'C:\\U
+sers\\willy\\OneDrive\\Deskto
+p\\StandPOS\\build',
+  APP_PACKAGE_NAME: 
+'standpos',
+  MUI_ICON: 'C:\\Users\\willy
+\\OneDrive\\Desktop\\StandPOS
+\\dist_electron\\.icon-ico\\i
+con.ico',
+  MUI_UNICON: 'C:\\Users\\wil
+ly\\OneDrive\\Desktop\\StandP
+OS\\dist_electron\\.icon-ico\
+\icon.ico',
+  APP_64: 'C:\\Users\\willy\\
+OneDrive\\Desktop\\StandPOS\\
+dist_electron\\standpos-1.0.0
+-x64.nsis.7z',
+  APP_64_NAME: 
+'standpos-1.0.0-x64.nsis.7z',
+  APP_64_HASH: '0A93B2C1D6BFC
+CD2EE8FB4A9ACB226689093621F31
+D07D0C05B067A9093F17814D33423
+96F5816D7B21463B934D83B21890F
+4F25D3239FDF91F271AE79AD2144'
+,
+  COMPANY_NAME: 'Willy Sd',
+  APP_PRODUCT_FILENAME: 
+'StandPOS',
+  APP_INSTALLER_STORE_FILE: '
+standpos-updater\\installer.e
+xe',
+  COMPRESSION_METHOD: '7z',
+  ONE_CLICK: null,
+  RUN_AFTER_FINISH: null,
+  SHORTCUT_NAME: 'StandPOS',
+  UNINSTALL_DISPLAY_NAME: 
+'StandPOS 1.0.0',
+  ESTIMATED_SIZE: 466774,
+  COMPRESS: 'auto'
+}
+2026-02-08T10:02:14.278Z 
+electron-builder:nsis {
+  OutFile: '"C:\\Users\\willy
+\\OneDrive\\Desktop\\StandPOS
+\\dist_electron\\StandPOS 
+Setup 1.0.0.exe"',
+  VIProductVersion: 
+'1.0.0.0',
+  VIAddVersionKey: [
+    '/LANG=1033 ProductName 
+"StandPOS"',
+    '/LANG=1033 
+ProductVersion "1.0.0"',
+    '/LANG=1033 
+LegalCopyright "Copyright ┬® 
+2026 Willy Sd"',
+    '/LANG=1033 
+FileDescription "StandPOS 
+desktop app"',
+    '/LANG=1033 FileVersion 
+"1.0.0"',
+    '/LANG=1033 CompanyName 
+"Willy Sd"'
+  ],
+  Unicode: true,
+  SetCompressor: 'zlib'
+}
+  ÔÇó spawning        command=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\app-builder-bin\win\x64\app-builder.exe download-artifact --name nsis-resources-3.4.1 --url https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-resources-3.4.1/nsis-resources-3.4.1.7z --sha512 Dqd6g+2buwwvoG1Vyf6BHR1b+25QMmPcwZx40atOT57gH27rkjOei1L0JTldxZu4NFoEmW4kJgZ3DlSWVON3+Q==
+2026-02-08T10:02:14.307Z 
+electron-builder:nsis 
+LangString win7Required 1033 
+"Windows 7 and above is 
+required"
+LangString win7Required 1031 
+"Windows 7 oder h├Âher wird 
+vorausgesetzt"
+LangString win7Required 1040 
+"├ê necessario disporre del 
+sistema operativo Windows 7 
+e successivi"
+LangString win7Required 1036 
+"Windows 7 (ou une version 
+ult├®rieure) est requis"
+LangString win7Required 1041 
+"Windows 7 
+õ╗ÑÚÖìÒüîÕ┐àÞªüÒüºÒüÖ"
+LangString win7Required 1042 
+"Windows 7 ýØ┤ýâüýØ┤ 
+ÝòäýÜöÝò®ÙïêÙïñ"
+LangString win7Required 1049 
+"ðóÐÇðÁð▒ÐâðÁÐéÐüÐÅ Windows 
+7 ð© ð▓ÐïÐêðÁ"
+LangString win7Required 1051 
+"Iba Windows 7 a vy┼í┼íie je 
+podporovan├¢"
+LangString win7Required 1029 
+"Jsou podporov├íny pouze 
+Windows 7 a vy┼í┼í├¡"
+LangString win7Required 1038 
+"Windows 7 vagy ├║jabb 
+sz├╝ks├®ges"
+LangString win7Required 1045 
+"Windows 7 lub nowszy jest 
+wymagany"
+LangString win7Required 1046 
+"Requer Windows 7 ou 
+superior"
+LangString win7Required 2052 
+"Ú£ÇÞªü Windows 7 
+µêûõ╗Ñõ©èþ│╗þ╗ƒ"
+LangString win7Required 1028 
+"Ú£ÇÞªü Windows 7 
+µêûµø┤µû░þÜäþ│╗þÁ▒"
+LangString win7Required 1055 
+"Windows 7 ve ├╝st├╝ 
+gereklidir"
+LangString win7Required 1053 
+"Windows 7 eller h├Âgre 
+kr├ñvs"
+LangString win7Required 1043 
+"Windows 7 en hoger is 
+vereist"
+LangString win7Required 1035 
+"Windows 7 tai uudempi 
+vaaditaan"
+LangString win7Required 3082 
+"Se necesita Windows 7 o una 
+versi├│n superior."
+LangString win7Required 1030 
+"Windows 7 og h├©jere er 
+n├©dvendig"
+LangString win7Required 1044 
+"Windows 7 and above is 
+required"
+LangString win7Required 2070 
+"Windows 7 and above is 
+required"
+LangString win7Required 1058 
+"Windows 7 and above is 
+required"
+LangString win7Required 1025 
+"Windows 7 and above is 
+required"
+LangString win7Required 1054 
+"Windows 7 and above is 
+required"
+LangString win7Required 1066 
+"Windows 7 and above is 
+required"
+LangString x64WinRequired 
+1033 "64-bit Windows is 
+required"
+LangString x64WinRequired 
+1031 "64-Bit-Windows wird 
+vorausgesetzt"
+LangString x64WinRequired 
+1040 "├ê necessario disporre 
+di un sistema operativo 
+Windows a 64 bit"
+LangString x64WinRequired 
+1036 "Windows 64 bits est 
+requis"
+LangString x64WinRequired 
+1041 "64 ÒâôÒââÒâê 
+ÒâÉÒâ╝Òé©ÒâºÒâ│Òü« Windows 
+ÒüîÕ┐àÞªüÒüºÒüÖ"
+LangString x64WinRequired 
+1042 "64 Ù╣äÝè© Ù▓äýáäýØÿ 
+WindowsÛ░Ç ÝòäýÜöÝò®ÙïêÙïñ"
+LangString x64WinRequired 
+1049 "ðóÐÇðÁð▒ÐâðÁÐéÐüÐÅ 
+Windows 64-bit"
+LangString x64WinRequired 
+1051 "Potrebujete 64-bit 
+Windows"
+LangString x64WinRequired 
+1029 "Pot┼Öebujete 64-bit 
+Windows"
+LangString x64WinRequired 
+1038 "64-bit Windows 
+sz├╝ks├®ges"
+LangString x64WinRequired 
+1045 "Windows 64-bitowy jest 
+wymagany"
+LangString x64WinRequired 
+1046 "Requer Windows 64 bits"
+LangString x64WinRequired 
+2052 "Ú£ÇÞªü 64 õ¢ì Windows 
+þ│╗þ╗ƒ"
+LangString x64WinRequired 
+1028 "Ú£ÇÞªü 64 õ¢ìÕàâ 
+Windows þ│╗þÁ▒"
+LangString x64WinRequired 
+1055 "64 bit Windows gerekli"
+LangString x64WinRequired 
+1053 "64-bitars Windows 
+kr├ñvs"
+LangString x64WinRequired 
+1043 "64-bit Windows is 
+vereist"
+LangString x64WinRequired 
+1035 "64-bittinen Windows on 
+pakollinen"
+LangString x64WinRequired 
+3082 "Windows de 64 bits es 
+requerido"
+LangString x64WinRequired 
+1030 "64-bit Windows er 
+p├Ñkr├ªvet"
+LangString x64WinRequired 
+1044 "64-bit Windows is 
+required"
+LangString x64WinRequired 
+2070 "64-bit Windows is 
+required"
+LangString x64WinRequired 
+1058 "64-bit Windows is 
+required"
+LangString x64WinRequired 
+1025 "64-bit Windows is 
+required"
+LangString x64WinRequired 
+1054 "64-bit Windows is 
+required"
+LangString x64WinRequired 
+1066 "64-bit Windows is 
+required"
+LangString appRunning 1033 
+"${PRODUCT_NAME} is 
+running.$\r$\nClick OK to 
+close it.$\r$\nIf it doesn't 
+close, try closing it 
+manually."
+LangString appRunning 1025 
+"ÔÇ½ÏÑ┘å ${PRODUCT_NAME} 
+┘èÏ╣┘à┘ä Ï¡Ïº┘ä┘èÏº.$\r$\nÔÇ½
+┘è┘ÅÏ▒Ï¼┘ë Ïº┘äÏÂÏ║ÏÀ Ï╣┘ä┘ë 
+┬½ ┘à┘êÏº┘ü┘é ┬╗ 
+┘äÏ║┘ä┘é┘ç.$\r$\nÔÇ½ÏÑÏ░Ïº 
+┘ä┘à ┘è┘ÅÏ║┘ä┘Ä┘éÏî 
+┘è┘ÅÏ▒Ï¼┘ë ┘àÏ¡Ïº┘ê┘äÏ® 
+ÏÑÏ║┘äÏº┘é┘ç ┘èÏ»┘ê┘èÏº."
+LangString appRunning 1029 
+"${PRODUCT_NAME} 
+b─ø┼¥├¡.$\r$\nPotvr─Åte 
+zav┼Öen├¡ stisknut├¡m 
+OK.$\r$\nPokud se aplikace 
+nezav┼Öe sama, zav┼Öete ji 
+ru─ìn─ø."
+LangString appRunning 1030 
+"${PRODUCT_NAME} 
+k├©rer.$\r$\nKlik OK for at 
+lukke den.$\r$\nHvis den 
+ikke lukker, kan du pr├©ve 
+at lukke den manuelt."
+LangString appRunning 1031 
+"${PRODUCT_NAME} wird gerade 
+ausgef├╝hrt.$\r$\nKlicke auf 
+┬╗OK┬½, um es zu 
+schlie├ƒen.$\r$\nFalls es 
+sich nicht schlie├ƒen 
+l├ñsst, versuche es manuell 
+zu schlie├ƒen."
+LangString appRunning 3082 
+"${PRODUCT_NAME} est├í 
+activa.$\r$\nHaz clic en 
+Aceptar para 
+cerrarla.$\r$\nSi no se 
+cierra, int├®ntalo 
+manualmente."
+LangString appRunning 1035 
+"${PRODUCT_NAME} on 
+k├ñynniss├ñ.$\r$\nValitse OK 
+sulkeaksesi sen.$\r$\nJos se 
+ei sulkeudu, yrit├ñ sulkea 
+se manuaalisesti."
+LangString appRunning 1036 
+"${PRODUCT_NAME} est en 
+cours dÔÇÖutilisation. 
+$\r$\nCliquez sur ┬½OK┬╗ 
+pour fermer ce programme."
+LangString appRunning 1038 
+"A ${PRODUCT_NAME} 
+alkalmaz├ís 
+fut.$\r$\nKattints az OK 
+gombra a 
+bez├ír├ís├íhoz.$\r$\nHa ├¡gy 
+sem ├íll le, z├írd be 
+manu├ílisan."
+LangString appRunning 1040 
+"${PRODUCT_NAME} ├¿ in 
+esecuzione.$\r$\nClicca su 
+OK per chiuderla.$\r$\nSe 
+non si chiude, prova a 
+chiuderla manualmente."
+LangString appRunning 1041 
+"${PRODUCT_NAME} ÒüîÞÁÀÕïòÒüù
+ÒüªÒüäÒü¥ÒüÖÒÇé$\r$\nOKÒéÆÒé»
+Òâ¬ÒââÒé»ÒüùÒüªÒÇüÚûëÒüÿÒüªÒü
+ÅÒüáÒüòÒüäÒÇé$\r$\nÚûëÒüÿÒü¬Ò
+üäÕá┤ÕÉêÒü»ÒÇüµëïÕïòÒüºÚûëÒüÿ
+ÒüªÒüÅÒüáÒüòÒüäÒÇé"
+LangString appRunning 1042 
+"${PRODUCT_NAME}ýØ┤(Û░Ç) 
+ýïñÝûë ýñæý×àÙïêÙïñ. 
+$\r$\nOKýØä Ýü┤Ùª¡ÝòÿÙ®┤ 
+ýóàÙúîÙÉ®ÙïêÙïñ."
+LangString appRunning 1043 
+"${PRODUCT_NAME} is nog 
+actief.$\r$\nKlik op OK om 
+de applicatie te 
+sluiten.$\r$\nAls de 
+applicatie vervolgens nog 
+niet sluit, probeer dan om 
+de applicatie zelf te 
+sluiten."
+LangString appRunning 1045 
+"Aplikacja ${PRODUCT_NAME} 
+jest 
+uruchomiona.$\r$\nKliknij 
+OK, aby j─à 
+zamkn─à─ç.$\r$\nJe┼øli nie 
+zostanie zamkni─Öta, 
+spr├│buj zamkn─à─ç j─à 
+r─Öcznie."
+LangString appRunning 1046 
+"${PRODUCT_NAME} est├í 
+funcionando.$\r$\nClique no 
+OK para fechar.$\r$\nSe n├úo 
+fechar, tente fech├í-lo 
+manualmente."
+LangString appRunning 2070 
+"${PRODUCT_NAME} est├í a 
+correr.$\r$\nClique em OK 
+para o encerrar.$\r$\nSe 
+n├úo encerrar, tente 
+encerr├í-lo manualmente."
+LangString appRunning 1049 
+"ðƒÐÇð©ð╗ð¥ðÂðÁð¢ð©ðÁ 
+${PRODUCT_NAME} ðÀð░ð┐ÐâÐëðÁð
+¢ð¥.$\r$\nðØð░ðÂð╝ð©ÐéðÁ 
+┬½OK┬╗, ÐçÐéð¥ð▒Ðï 
+ðÀð░ð║ÐÇÐïÐéÐî 
+ðÁð│ð¥.$\r$\nðòÐüð╗ð© ð¥ð¢ð¥ 
+ð¢ðÁ ðÀð░ð║ÐÇÐïð▓ð░ðÁÐéÐüÐÅ, 
+ð┐ð¥ð┐ÐÇð¥ð▒Ðâð╣ÐéðÁ 
+ðÀð░ð║ÐÇÐïÐéÐî ðÁð│ð¥ 
+ð▓ÐÇÐâÐçð¢ÐâÐÄ."
+LangString appRunning 1051 
+"${PRODUCT_NAME} 
+be┼¥├¡.$\r$\nKliknut├¡m na 
+tla─ìidlo OK ho 
+zatvor├¡te.$\r$\nAk sa 
+nezavrie, sk├║ste ho 
+zatvori┼Ñ ru─ìne."
+LangString appRunning 1053 
+"${PRODUCT_NAME} ├ñr 
+ig├Ñng.$\r$\nKlicka p├Ñ OK 
+f├Âr att st├ñnga 
+det.$\r$\nOm det inte 
+st├ñngs, f├Ârs├Âk att 
+st├ñnga det manuellt."
+LangString appRunning 1055 
+"${PRODUCT_NAME} 
+├ºal─▒┼ƒ─▒yor.$\r$\nKapatmak 
+i├ºin Tamam'─▒ t─▒klay─▒n."
+LangString appRunning 1058 
+"${PRODUCT_NAME} ðÀð░ð┐ÐâÐëðÁ
+ð¢ð¥.$\r$\nðÜð╗ð░Ðåð¢ÐûÐéÐî 
+ð×ðÜ ð┤ð╗ÐÅ ðÀð░ð▓ðÁÐÇÐêðÁð¢ð
+¢ÐÅ.$\r$\nð»ð║Ðëð¥ 
+ðÀð░ð▓ðÁÐÇÐêðÁð¢ð¢ÐÅ ð¢ðÁ 
+ð▓ð┤ð░ð╗ð¥ÐüÐî ÔÇö 
+Ðüð┐ÐÇð¥ð▒Ðâð╣ÐéðÁ 
+ð▓ÐÇÐâÐçð¢Ðâ."
+LangString appRunning 2052 
+"${PRODUCT_NAME} µ¡úÕ£¿Þ┐ÉÞíî
+.$\r$\nþé╣Õç╗ÔÇ£þí«Õ«ÜÔÇØÕà│Ú
+ù¡."
+LangString appRunning 1028 
+"${PRODUCT_NAME} 
+µ¡úÕ£¿ÕƒÀÞíîÒÇé$\r$\nÚ╗×µôè 
+OK Úù£ÚûëÒÇé$\r$\nÕªéµ×£þäíµ│
+òÚù£Úûë´╝îÞ®ªÞæùµëïÕïòÚù£ÚûëÒ
+Çé"
+LangString appRunning 1044 
+"${PRODUCT_NAME} is 
+running.$\r$\nClick OK to 
+close it.$\r$\nIf it doesn't 
+close, try closing it 
+manually."
+LangString appRunning 1054 
+"${PRODUCT_NAME} is 
+running.$\r$\nClick OK to 
+close it.$\r$\nIf it doesn't 
+close, try closing it 
+manually."
+LangString appRunning 1066 
+"${PRODUCT_NAME} is 
+running.$\r$\nClick OK to 
+close it.$\r$\nIf it doesn't 
+close, try closing it 
+manually."
+LangString appCannotBeClosed 
+1033 "${PRODUCT_NAME} cannot 
+be closed. $\r$\nPlease 
+close it manually and click 
+Retry to continue."
+LangString appCannotBeClosed 
+1025 "ÔÇ½┘ä┘à ┘èÏ¬┘à┘â┘å 
+┘à┘å ÏÑÏ║┘äÏº┘é 
+${PRODUCT_NAME} 
+$\r$\n┘è┘ÅÏ▒Ï¼┘ë 
+ÏÑÏ║┘äÏº┘é┘ç ┘èÏ»┘ê┘èÏº Ï½┘à 
+Ïº┘äÏÂÏ║ÏÀ ┘àÏ▒Ï® ÏúÏ«Ï▒┘ë 
+Ï╣┘ä┘ë ÏÑÏ╣ÏºÏ»Ï® 
+Ïº┘ä┘àÏ¡Ïº┘ê┘äÏ® 
+┘ä┘äÏºÏ│Ï¬┘àÏ▒ÏºÏ▒.ÔÇÅ"
+LangString appCannotBeClosed 
+1029 "Aplikaci 
+${PRODUCT_NAME} se 
+nepoda┼Öilo zav┼Ö├¡t. 
+$\r$\nZav┼Öete ji ru─ìn─ø a 
+pot├® klikn─øte na Opakovat 
+pro pokra─ìov├ín├¡."
+LangString appCannotBeClosed 
+1030 "${PRODUCT_NAME} kan 
+ikke afsluttes $\r$\nLuk den 
+manuelt og klik Pr├©v igen 
+for at forts├ªtte"
+LangString appCannotBeClosed 
+1031 "${PRODUCT_NAME} kann 
+nicht geschlossen werden. 
+$\r$\nSchlie├ƒ es bitte 
+manuell und klicke auf 
+┬╗Wiederholen┬½, um 
+fortzufahren."
+LangString appCannotBeClosed 
+3082 "No se puede cerrar 
+${PRODUCT_NAME}. $\r$\nPor 
+favor cierra la aplicaci├│n 
+manualmente y haz clic en 
+reintentar para continuar."
+LangString appCannotBeClosed 
+1035 "${PRODUCT_NAME} ei voi 
+sulkea. $\r$\nSulje se itse 
+ja napsauta Yrit├ñ uudelleen 
+jatkaaksesi."
+LangString appCannotBeClosed 
+1036 "${PRODUCT_NAME} ne 
+peut pas ├¬tre ferm├®. 
+$\r$\nVeuillez la fermer 
+manuellement et cliquez sur 
+R├®essayer pour continuer."
+LangString appCannotBeClosed 
+1038 "Nem siker├╝lt bez├írni 
+a ${PRODUCT_NAME}t. 
+$\r$\nZ├írd be k├®zzel, majd 
+kattints az ├Üjra gombra a 
+folytat├íshoz!"
+LangString appCannotBeClosed 
+1040 "${PRODUCT_NAME} non 
+pu├▓ essere chiuso. 
+$\r$\nPer favore, chiudilo 
+manualmente e clicca su 
+Riprova per continuare."
+LangString appCannotBeClosed 
+1041 "${PRODUCT_NAME}ÒüîþÁéõ║
+åÒüºÒüìÒü¥ÒüøÒéôÒÇé$\r$\nµëïÕ
+ïòÒüºÚûëÒüÿÒüªÒÇüÒÇÄÕåìÞ®ªÞíî
+ÒÇÅÒéÆÒé»Òâ¬ÒââÒé»ÒüùÒüªÒüÅÒü
+áÒüòÒüäÒÇé"
+LangString appCannotBeClosed 
+1043 "${PRODUCT_NAME} kan 
+niet automatisch worden 
+afgesloten. $\r$\nSluit zelf 
+de ${PRODUCT_NAME} app en 
+klik vervolgens op 
+ÔÇÿOpnieuw proberenÔÇÖ."
+LangString appCannotBeClosed 
+1045 "Nie mo┼╝na zamkn─à─ç 
+${PRODUCT_NAME}. 
+$\r$\nZamknij aplikacj─Ö i 
+kliknij Pon├│w, aby 
+kontynuowa─ç."
+LangString appCannotBeClosed 
+1046 "N├úo ├® poss├¡vel 
+fechar o ${PRODUCT_NAME}. 
+$\r$\nFeche a janela do 
+${PRODUCT_NAME} e clique em 
+Repetir para continuar."
+LangString appCannotBeClosed 
+2070 "N├úo ├® poss├¡vel 
+fechar o ${PRODUCT_NAME}. 
+$\r$\nPor favor, feche-o 
+manualmente e clique em 
+┬┤Tentar novamente' para 
+continuar."
+LangString appCannotBeClosed 
+1049 "ðØðÁ Ðâð┤ð░ð╗ð¥ÐüÐî 
+ðÀð░ð║ÐÇÐïÐéÐî 
+${PRODUCT_NAME}. 
+$\r$\nðƒð¥ðÂð░ð╗Ðâð╣ÐüÐéð░, 
+ðÀð░ð║ÐÇð¥ð╣ÐéðÁ 
+${PRODUCT_NAME} 
+ð▓ÐÇÐâÐçð¢ÐâÐÄ ð© 
+ð¢ð░ðÂð╝ð©ÐéðÁ 
+┬½ðƒð¥ð▓Ðéð¥ÐÇð©ÐéÐî┬╗, 
+ÐçÐéð¥ð▒Ðï 
+ð┐ÐÇð¥ð┤ð¥ð╗ðÂð©ÐéÐî."
+LangString appCannotBeClosed 
+1051 "${PRODUCT_NAME} nie je 
+mo┼¥n├® zatvori┼Ñ. 
+$\r$\nZatvorte ho ru─ìne a 
+pokra─ìujte kliknut├¡m na 
+polo┼¥ku Opakova┼Ñ."
+LangString appCannotBeClosed 
+1053 "${PRODUCT_NAME} g├Ñr 
+inte att st├ñngas. 
+$\r$\nV├ñnligen st├ñng det 
+manuellt och klicka p├Ñ 
+F├Ârs├Âk igen f├Âr att 
+forts├ñtta."
+LangString appCannotBeClosed 
+1055 "${PRODUCT_NAME} 
+kapat─▒lamaz. $\r$\nL├╝tfen 
+elle kapat─▒n ve devam etmek 
+i├ºin Tekrar'a t─▒klay─▒n"
+LangString appCannotBeClosed 
+1058 "ðØðÁð╝ð¥ðÂð╗ð©ð▓ð¥ 
+ðÀð░ð║ÐÇð©Ðéð© 
+${PRODUCT_NAME}. 
+$\r$\nðùð░ð║ÐÇð©ð╣ÐéðÁ 
+ð╣ð¥ð│ð¥ ð▓ÐÇÐâÐçð¢Ðâ Ðéð░ 
+ð¢ð░Ðéð©Ðüð¢ÐûÐéÐî 
+ðƒð¥ð▓Ðéð¥ÐÇð©Ðéð©, Ðëð¥ð▒ 
+ð┐ÐÇð¥ð┤ð¥ð▓ðÂð©Ðéð©."
+LangString appCannotBeClosed 
+1066 "${PRODUCT_NAME} kh├┤ng 
+thß╗â ─æ├│ng $\r$\nVui l├▓ng 
+─æ├│ng n├│ theo c├ích thß╗º 
+c├┤ng v├á nhß║Ñp v├áo Thß╗¡ 
+lß║íi ─æß╗â tiß║┐p tß╗Ñc."
+LangString appCannotBeClosed 
+2052 "${PRODUCT_NAME} µùáµ│òÕ
+à│Úù¡ÒÇé$\r$\nÞ»ÀµëïÕè¿Õà│Úù¡
+Õ«â´╝îþäÂÕÉÄÕìòÕç╗ÚçìÞ»òõ╗Ñþ╗
+ºþ╗¡ÒÇé"
+LangString appCannotBeClosed 
+1028 "${PRODUCT_NAME} þäíµ│òÚ
+ù£ÚûëÒÇé$\r$\nÞ½ïµëïÕïòÚù£Úûë
+Õ«â´╝îþäÂÕ¥îµîëõ©Çõ©ïÚçìÞ®ªõ╗
+Ñþ╣╝þ║îÒÇé"
+LangString appCannotBeClosed 
+1042 "${PRODUCT_NAME} cannot 
+be closed. $\r$\nPlease 
+close it manually and click 
+Retry to continue."
+LangString appCannotBeClosed 
+1044 "${PRODUCT_NAME} cannot 
+be closed. $\r$\nPlease 
+close it manually and click 
+Retry to continue."
+LangString appCannotBeClosed 
+1054 "${PRODUCT_NAME} cannot 
+be closed. $\r$\nPlease 
+close it manually and click 
+Retry to continue."
+LangString installing 1033 
+"Installing, please wait..."
+LangString installing 1031 
+"Installation l├ñuft, bitte 
+warten..."
+LangString installing 1040 
+"Attendere prego. 
+Installazione in corso..."
+LangString installing 1036 
+"En cours 
+dÔÇÖinstallation... Veuillez 
+patienter s'il vous pla├«t."
+LangString installing 1041 "Ò
+éñÒâ│Òé╣ÒâêÒâ╝Òâ½ÒüùÒüªÒüäÒü¥
+ÒüÖÒÇéÒüùÒü░ÒéëÒüÅÒüèÕ¥àÒüíÒü
+ÅÒüáÒüòÒüä..."
+LangString installing 1042 
+"ýäñý╣ÿÝòÿÛ│á ý×êýèÁÙïêÙïñ. 
+ý×áýï£ 
+Û©░ÙïñÙáñýú╝ýï¡ýï£ýÿñ..."
+LangString installing 1049 
+"ðúÐüÐéð░ð¢ð¥ð▓ð║ð░, 
+ð┐ð¥ðÂð░ð╗Ðâð╣ÐüÐéð░, 
+ð┐ð¥ð┤ð¥ðÂð┤ð©ÐéðÁ..."
+LangString installing 1051 
+"In┼ítalujem, pros├¡m 
+po─ìkajte..."
+LangString installing 1029 
+"Instaluje se, pros├¡m 
+vy─ìkejte..."
+LangString installing 1038 
+"Telep├¡t├®s, k├®rem 
+v├írjon..."
+LangString installing 1045 
+"Zaczekaj na uko┼äczenie 
+instalacji..."
+LangString installing 1046 
+"Instalando, por favor 
+aguarde..."
+LangString installing 2052 
+"µ¡úÕ£¿Õ«ëÞúà, Þ»Àþ¿ìÕÇÖ..."
+LangString installing 1028 
+"µ¡úÕ£¿Õ«ëÞúØ, Þ½ïþ¿ìÕÇÖ..."
+LangString installing 1055 
+"Y├╝kleniyor, l├╝tfen 
+bekleyin..."
+LangString installing 1053 
+"Installerar, v├ñnligen 
+v├ñnta..."
+LangString installing 1043 
+"Installeren, even geduld..."
+LangString installing 1035 
+"Asennetaan, odota..."
+LangString installing 3082 
+"Instalando, espera un 
+momento..."
+LangString installing 1030 
+"Installerer, vent 
+venligst..."
+LangString installing 1044 
+"Installing, please wait..."
+LangString installing 2070 
+"Installing, please wait..."
+LangString installing 1058 
+"Installing, please wait..."
+LangString installing 1025 
+"Installing, please wait..."
+LangString installing 1054 
+"Installing, please wait..."
+LangString installing 1066 
+"Installing, please wait..."
+LangString 
+areYouSureToUninstall 1033 
+"Are you sure you want to 
+uninstall ${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1031 
+"Sind Sie sicher, dass Sie 
+${PRODUCT_NAME} 
+deinstallieren m├Âchten?"
+LangString 
+areYouSureToUninstall 1040 
+"Sicuro di voler procedere 
+alla disinstallazione di 
+${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1036 
+"Etes-vous s├╗r(e) de 
+vouloir d├®sinstaller 
+${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1041 
+"${PRODUCT_NAME} ÒéÆÒéóÒâ│Òéñ
+Òâ│Òé╣ÒâêÒâ╝Òâ½ÒüùÒüªÒééÒéêÒé
+ìÒüùÒüäÒüºÒüÖÒüï´╝ƒ"
+LangString 
+areYouSureToUninstall 1042 
+"${PRODUCT_NAME}ýØä(ÙÑ╝) 
+ýá£Û▒░ Ýòÿýï£Û▓áýèÁÙïêÛ╣î?"
+LangString 
+areYouSureToUninstall 1049 
+"ðÆÐï Ðâð▓ðÁÐÇðÁð¢Ðï, ÐçÐéð¥ 
+Ðàð¥Ðéð©ÐéðÁ Ðâð┤ð░ð╗ð©ÐéÐî 
+${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1051 
+"Ste si ist├¢ ┼¥e chcete 
+odin┼ítalova┼Ñ 
+${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1029 
+"Jste si jisti, ┼¥e chcete 
+odinstalovat 
+${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1038 
+"Biztos benne, hogy 
+szeretn├® elt├ívol├¡tani a 
+${PRODUCT_NAME} 
+alkalmaz├íst?"
+LangString 
+areYouSureToUninstall 1045 
+"Czy na pewno chcesz 
+odinstalowa─ç 
+${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1046 
+"Tem certeza que deseja 
+desinstalar ${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 2052 
+"þí«Õ«ÜÕì©Þ¢¢ 
+${PRODUCT_NAME} ÕÉù´╝ƒ"
+LangString 
+areYouSureToUninstall 1028 
+"þó║Õ«ÜÞºúÚÖñÕ«ëÞúØ 
+${PRODUCT_NAME} ÕùÄ´╝ƒ"
+LangString 
+areYouSureToUninstall 1055 
+"${PRODUCT_NAME} kald─▒rmak 
+istedi─ƒinize Eminmisiniz?"
+LangString 
+areYouSureToUninstall 1053 
+"├är du s├ñker p├Ñ att du 
+vill avinstallera 
+${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1043 
+"Weet je zeker dat je 
+${PRODUCT_NAME} wilt 
+verwijderen?"
+LangString 
+areYouSureToUninstall 1035 
+"Oletko varma, ett├ñ haluat 
+poistaa ${PRODUCT_NAME} 
+asennuksen?"
+LangString 
+areYouSureToUninstall 3082 
+"┬┐Seguro que quieres 
+desinstalar ${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1030 
+"Er du sikker p├Ñ, at du vil 
+afinstallere 
+${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1044 
+"Are you sure you want to 
+uninstall ${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 2070 
+"Are you sure you want to 
+uninstall ${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1058 
+"Are you sure you want to 
+uninstall ${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1025 
+"Are you sure you want to 
+uninstall ${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1054 
+"Are you sure you want to 
+uninstall ${PRODUCT_NAME}?"
+LangString 
+areYouSureToUninstall 1066 
+"Are you sure you want to 
+uninstall ${PRODUCT_NAME}?"
+LangString 
+decompressionFailed 1033 
+"Failed to decompress files. 
+Please try running the 
+installer again."
+LangString 
+decompressionFailed 1025 
+"ÔÇ½┘ä┘éÏ» ┘üÏ┤┘ä 
+┘ê┘è┘å┘ÆÏ»┘êÏ▓┘Æ ┘ü┘è ┘ü┘â 
+ÏÂÏ║ÏÀ Ïº┘ä┘à┘ä┘üÏºÏ¬. 
+┘è┘ÅÏ▒Ï¼┘ë ┘àÏ¡Ïº┘ê┘äÏ® 
+Ï¬Ï┤Ï║┘è┘ä ÏúÏ»ÏºÏ® 
+Ïº┘äÏ¬Ï½Ï¿┘èÏ¬ ┘àÏ▒Ï® 
+ÏúÏ«Ï▒┘ë."
+LangString 
+decompressionFailed 1029 
+"Nepoda┼Öilo se rozbalit 
+soubory. Zkuste pros├¡m 
+instal├ítor spustit znovu."
+LangString 
+decompressionFailed 1030 
+"Det lykkedes ikke at 
+udpakke filer. Pr├©v 
+venligst at k├©re 
+installationsprogrammet 
+igen."
+LangString 
+decompressionFailed 1031 
+"Die Dateien konnten nicht 
+entpackt werden. Bitte 
+versuche, das 
+Installationsprogramm erneut 
+auszuf├╝hren."
+LangString 
+decompressionFailed 3082 
+"Fallo al descomprimir 
+archivos. Int├®ntalo de 
+nuevo m├ís tarde."
+LangString 
+decompressionFailed 1035 
+"Tiedostojen purkaminen ei 
+onnistunut. Yrit├ñ ajaa 
+asennusohjelma uudelleen."
+LangString 
+decompressionFailed 1036 
+"├ëchec de d├®compression 
+des fichiers. Veuillez 
+r├®essayer dÔÇÖex├®cuter 
+l'installeur."
+LangString 
+decompressionFailed 1038 
+"Kicsomagol├ísi hiba. 
+K├®rlek futtasd a 
+telep├¡t┼æt ├║jra!"
+LangString 
+decompressionFailed 1040 
+"Impossibile decomprimere i 
+file. Per favore, prova ad 
+eseguire di nuovo il 
+programma di installazione."
+LangString 
+decompressionFailed 1041 "Òâò
+ÒéíÒéñÒâ½Òü«ÞºúÕçìÒü½Õñ▒µòùÒü
+ùÒü¥ÒüùÒüƒÒÇéÒééÒüåõ©ÇÕ║ªÒéñÒ
+â│Òé╣ÒâêÒâ╝Òâ®Òâ╝ÒéÆÕ«ƒÞíîÒüù
+ÒüªÒü┐ÒüªÒüÅÒüáÒüòÒüäÒÇé"
+LangString 
+decompressionFailed 1043 
+"Het decomprimeren van 
+bestanden is mislukt. Voer 
+het installatiebestand 
+opnieuw uit om te proberen 
+dit probleem te verhelpen."
+LangString 
+decompressionFailed 1045 
+"Nie uda┼éo si─Ö rozpakowa─ç 
+plik├│w. Spr├│buj ponownie 
+uruchomi─ç instalator."
+LangString 
+decompressionFailed 1046 
+"Falha ao descompactar os 
+arquivos. Por favor, tente 
+iniciar o instalador 
+novamente."
+LangString 
+decompressionFailed 2070 
+"Falha ao descomprimir 
+ficheiros. Por favor, 
+experimente correr o 
+instalador de novo."
+LangString 
+decompressionFailed 1049 
+"ðØðÁ Ðâð┤ð░ð╗ð¥ÐüÐî ÐÇð░ðÀð░
+ÐÇÐàð©ð▓ð©ÐÇð¥ð▓ð░ÐéÐî 
+Ðäð░ð╣ð╗Ðï. 
+ðƒð¥ðÂð░ð╗Ðâð╣ÐüÐéð░, 
+ð┐ð¥ð┐ÐÇð¥ð▒Ðâð╣ÐéðÁ 
+ðÀð░ð┐ÐâÐüÐéð©ÐéÐî 
+ÐâÐüÐéð░ð¢ð¥ð▓Ðëð©ð║ 
+ðÀð░ð¢ð¥ð▓ð¥."
+LangString 
+decompressionFailed 1051 
+"Nepodarilo sa rozbali┼Ñ 
+s├║bory. Sk├║ste znova 
+spusti┼Ñ in┼ítala─ìn├¢ 
+program."
+LangString 
+decompressionFailed 1053 
+"Det gick inte att 
+dekomprimera filer. F├Ârs├Âk 
+att k├Âra 
+installationsprogrammet 
+igen."
+LangString 
+decompressionFailed 1058 
+"ðØðÁ ð▓ð┤ð░ð╗ð¥ÐüÐî 
+ÐÇð¥ðÀð░ÐÇÐàÐûð▓Ðâð▓ð░Ðéð© 
+Ðäð░ð╣ð╗ð©. ðæÐâð┤Ðî 
+ð╗ð░Ðüð║ð░, 
+Ðüð┐ÐÇð¥ð▒Ðâð╣ÐéðÁ 
+ðÀð░ð┐ÐâÐüÐéð©Ðéð© 
+ð▓ÐüÐéð░ð¢ð¥ð▓ð╗ÐÄð▓ð░Ðç 
+ðÀð¢ð¥ð▓."
+LangString 
+decompressionFailed 1028 
+"ÞºúÕúôþ©«µ¬öµíêÕñ▒µòùÒÇé Þ½ï
+ÕÿùÞ®ªÕåìµ¼íÕƒÀÞíîÕ«ëÞúØþ¿ïÕ╝
+ÅÒÇé"
+LangString 
+decompressionFailed 2052 
+"Failed to decompress files. 
+Please try running the 
+installer again."
+LangString 
+decompressionFailed 1042 
+"Failed to decompress files. 
+Please try running the 
+installer again."
+LangString 
+decompressionFailed 1044 
+"Failed to decompress files. 
+Please try running the 
+installer again."
+LangString 
+decompressionFailed 1055 
+"Failed to decompress files. 
+Please try running the 
+installer again."
+LangString 
+decompressionFailed 1054 
+"Failed to decompress files. 
+Please try running the 
+installer again."
+LangString 
+decompressionFailed 1066 
+"Failed to decompress files. 
+Please try running the 
+installer again."
+LangString uninstallFailed 
+1033 "Failed to uninstall 
+old application files. 
+Please try running the 
+installer again."
+LangString uninstallFailed 
+1025 "ÔÇ½┘ä┘éÏ» ┘üÏ┤┘ä 
+ÏÑ┘äÏ║ÏºÏí Ïº┘äÏ¬Ï½Ï¿┘èÏ¬ 
+┘à┘ä┘üÏºÏ¬ Ïº┘äÏ¬ÏÀÏ¿┘è┘é. 
+┘è┘ÅÏ▒Ï¼┘ë ┘àÏ¡Ïº┘ê┘äÏ® 
+Ï¬Ï┤Ï║┘è┘ä ÏúÏ»ÏºÏ® 
+Ïº┘äÏ¬Ï½Ï¿┘èÏ¬ ┘àÏ▒Ï® 
+ÏúÏ«Ï▒┘ë."
+LangString uninstallFailed 
+1029 "Nepoda┼Öilo se 
+odinstalovat star├® soubory 
+aplikace. Zkuste pros├¡m 
+instal├ítor spustit znovu."
+LangString uninstallFailed 
+1030 "Det lykkedes ikke at 
+afinstallere gamle 
+applikationsfiler. Pr├©v 
+venligst at k├©re 
+installationsprogrammet 
+igen."
+LangString uninstallFailed 
+1031 "Die alten 
+Anwendungsdateien konnten 
+nicht deinstalliert werden. 
+Bitte versuche, das 
+Installationsprogramm erneut 
+auszuf├╝hren."
+LangString uninstallFailed 
+3082 "Fallo al desinstalar 
+archivos antiguos de la 
+aplicaci├│n. Int├®ntalo de 
+nuevo m├ís tarde."
+LangString uninstallFailed 
+1035 "Vanhojen 
+sovellustiedostojen poisto 
+ep├ñonnistui. Yrit├ñ ajaa 
+asennusohjelma uudelleen."
+LangString uninstallFailed 
+1036 "├ëchec de 
+d├®sinstallation des anciens 
+fichiers d'application . 
+Veuillez r├®essayer 
+dÔÇÖex├®cuter l'installeur."
+LangString uninstallFailed 
+1038 "A r├®gi alkalmaz├ís 
+├íllom├ínyait nem siker├╝lt 
+t├Âr├Âlni. K├®rlek futtasd a 
+telep├¡t┼æt ├║jra!"
+LangString uninstallFailed 
+1040 "Impossibile 
+disinstallare i vecchi file 
+dell'applicazione. Per 
+favore, prova ad eseguire di 
+nuovo il programma di 
+installazione."
+LangString uninstallFailed 
+1041 "ÕÅñÒüäÒéóÒâùÒâ¬Òé▒Òâ╝Òé
+ÀÒâºÒâ│ÒâòÒéíÒéñÒâ½Òü«ÒéóÒâ│Ò
+éñÒâ│Òé╣ÒâêÒâ╝Òâ½Òü½Õñ▒µòùÒüù
+Òü¥ÒüùÒüƒÒÇéÒééÒüåõ©ÇÕ║ªÒéñÒâ
+│Òé╣ÒâêÒâ╝Òâ®Òâ╝ÒéÆÕ«ƒÞíîÒüùÒ
+üªÒü┐ÒüªÒüÅÒüáÒüòÒüäÒÇé"
+LangString uninstallFailed 
+1043 "Het de├»nstalleren van 
+oude applicatiebestanden is 
+mislukt. Voer het 
+installatiebestand opnieuw 
+uit om te proberen dit 
+probleem te verhelpen."
+LangString uninstallFailed 
+1045 "Nie uda┼éo si─Ö 
+usun─à─ç plik├│w starej 
+wersji aplikacji. Spr├│buj 
+ponownie uruchomi─ç 
+instalator."
+LangString uninstallFailed 
+1046 "Falha ao desinstalar 
+os arquivos do aplicativo 
+antigo. Por favor, tente 
+iniciar o instalador 
+novamente."
+LangString uninstallFailed 
+2070 "Falha ao desinstalar 
+os ficheiros da aplica├º├úo 
+antiga. Por favor, 
+experimente correr novamente 
+o instalador."
+LangString uninstallFailed 
+1049 "ðØðÁ Ðâð┤ð░ð╗ð¥ÐüÐî 
+Ðâð┤ð░ð╗ð©ÐéÐî ÐüÐéð░ÐÇÐïðÁ 
+Ðäð░ð╣ð╗Ðï 
+ð┐ÐÇð©ð╗ð¥ðÂðÁð¢ð©ÐÅ. 
+ðƒð¥ðÂð░ð╗Ðâð╣ÐüÐéð░, 
+ð┐ð¥ð┐ÐÇð¥ð▒Ðâð╣ÐéðÁ 
+ðÀð░ð┐ÐâÐüÐéð©ÐéÐî 
+ÐâÐüÐéð░ð¢ð¥ð▓Ðëð©ð║ 
+ðÀð░ð¢ð¥ð▓ð¥."
+LangString uninstallFailed 
+1051 "Nepodarilo sa 
+odin┼ítalova┼Ñ star├® 
+s├║bory aplik├ície. Sk├║ste 
+znova spusti┼Ñ in┼ítala─ìn├¢ 
+program."
+LangString uninstallFailed 
+1053 "Det gick inte att 
+avinstallera gamla 
+programfiler. F├Ârs├Âk att 
+k├Âra 
+installationsprogrammet 
+igen."
+LangString uninstallFailed 
+1058 "ðØðÁ ð▓ð┤ð░ð╗ð¥ÐüÐî 
+ð▓ð©ð┤ð░ð╗ð©Ðéð© ÐüÐéð░ÐÇÐû 
+Ðäð░ð╣ð╗ð© 
+ðÀð░ÐüÐéð¥ÐüÐâð¢ð║Ðâ. 
+ðæÐâð┤Ðî ð╗ð░Ðüð║ð░, 
+Ðüð┐ÐÇð¥ð▒Ðâð╣ÐéðÁ 
+ðÀð░ð┐ÐâÐüÐéð©Ðéð© 
+ð▓ÐüÐéð░ð¢ð¥ð▓ð╗ÐÄð▓ð░Ðç 
+ðÀð¢ð¥ð▓."
+LangString uninstallFailed 
+1028 "þäíµ│òõ┐║Õ«ëÞúØÞêèþÜäµç
+ëþö¿þ¿ïÕ╝Åµ¬öµíêÒÇé Þ½ïÕÿùÞ®ª
+Õåìµ¼íÕƒÀÞíîÕ«ëÞúØþ¿ïÕ╝ÅÒÇé"
+LangString uninstallFailed 
+2052 "Failed to uninstall 
+old application files. 
+Please try running the 
+installer again."
+LangString uninstallFailed 
+1042 "Failed to uninstall 
+old application files. 
+Please try running the 
+installer again."
+LangString uninstallFailed 
+1044 "Failed to uninstall 
+old application files. 
+Please try running the 
+installer again."
+LangString uninstallFailed 
+1055 "Failed to uninstall 
+old application files. 
+Please try running the 
+installer again."
+LangString uninstallFailed 
+1054 "Failed to uninstall 
+old application files. 
+Please try running the 
+installer again."
+  ÔÇó found existing  path=C:\Users\willy\AppData\Local\electron-builder\Cache\nsis\nsis-resources-3.4.1
+LangString uninstallFailed 
+1066 "Failed to uninstall 
+old application files. 
+Please try running the 
+installer again."
+  ÔÇó exited          command=app-builder.exe code=0 pid=8340 out=C:\Users\willy\AppData\Local\electron-builder\Cache\nsis\nsis-resources-3.4.1
+  ÔÇó spawning        command=C:\Users\willy\AppData\Local\electron-builder\Cache\nsis\nsis-3.0.4.1\Bin\makensis.exe -WX -INPUTCHARSET UTF8 -DAPP_ID=com.standpos.pos -DAPP_GUID=7a2c5d61-eba7-5bdc-ab34-9f1f46fab4de -DUNINSTALL_APP_KEY=7a2c5d61-eba7-5bdc-ab34-9f1f46fab4de -DPRODUCT_NAME=StandPOS -DPRODUCT_FILENAME=StandPOS -DAPP_FILENAME=standpos -DAPP_DESCRIPTION=StandPOS desktop app -DVERSION=1.0.0 -DPROJECT_DIR=C:\Users\willy\OneDrive\Desktop\StandPOS -DBUILD_RESOURCES_DIR=C:\Users\willy\OneDrive\Desktop\StandPOS\build -DAPP_PACKAGE_NAME=standpos -DMUI_ICON=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\.icon-ico\icon.ico -DMUI_UNICON=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\.icon-ico\icon.ico -DAPP_64=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\standpos-1.0.0-x64.nsis.7z -DAPP_64_NAME=standpos-1.0.0-x64.nsis.7z -DAPP_64_HASH=0A93B2C1D6BFCCD2EE8FB4A9ACB226689093621F31D07D0C05B067A9093F17814D3342396F5816D7B21463B934D83B21890F4F25D3239FDF91F271AE79AD2144 -DCOMPANY_NAME=Willy Sd -DAPP_PRODUCT_FILENAME=StandPOS -DAPP_INSTALLER_STORE_FILE=standpos-updater\installer.exe -DCOMPRESSION_METHOD=7z -DONE_CLICK -DRUN_AFTER_FINISH -DSHORTCUT_NAME=StandPOS -DUNINSTALL_DISPLAY_NAME=StandPOS 1.0.0 -DESTIMATED_SIZE=466774 -DCOMPRESS=auto -DBUILD_UNINSTALLER -DUNINSTALLER_OUT_FILE=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\__uninstaller-nsis-standpos.exe -XOutFile "C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\StandPOS Setup 1.0.0.exe" -XVIProductVersion 1.0.0.0 -XVIAddVersionKey /LANG=1033 ProductName "StandPOS" -XVIAddVersionKey /LANG=1033 ProductVersion "1.0.0" -XVIAddVersionKey /LANG=1033 LegalCopyright "Copyright ┬® 2026 Willy Sd" -XVIAddVersionKey /LANG=1033 FileDescription "StandPOS desktop app" -XVIAddVersionKey /LANG=1033 FileVersion "1.0.0" -XVIAddVersionKey /LANG=1033 CompanyName "Willy Sd" -XUnicode true -XSetCompressor zlib - cwd=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\app-builder-lib\templates\nsis
+Command line defined: "APP_ID=com.standpos.pos"
+Command line defined: "APP_GUID=7a2c5d61-eba7-5bdc-ab34-9f1f46fab4de"
+Command line defined: "UNINSTALL_APP_KEY=7a2c5d61-eba7-5bdc-ab34-9f1f46fab4de"
+Command line defined: "PRODUCT_NAME=StandPOS"
+Command line defined: "PRODUCT_FILENAME=StandPOS"
+Command line defined: "APP_FILENAME=standpos"
+Command line defined: "APP_DESCRIPTION=StandPOS desktop app"
+Command line defined: "VERSION=1.0.0"
+Command line defined: "PROJECT_DIR=C:\Users\willy\OneDrive\Desktop\StandPOS"
+Command line defined: "BUILD_RESOURCES_DIR=C:\Users\willy\OneDrive\Desktop\StandPOS\build"
+Command line defined: "APP_PACKAGE_NAME=standpos"
+Command line defined: "MUI_ICON=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\.icon-ico\icon.ico"
+Command line defined: "MUI_UNICON=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\.icon-ico\icon.ico"
+Command line defined: "APP_64=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\standpos-1.0.0-x64.nsis.7z"
+Command line defined: "APP_64_NAME=standpos-1.0.0-x64.nsis.7z"
+Command line defined: "APP_64_HASH=0A93B2C1D6BFCCD2EE8FB4A9ACB226689093621F31D07D0C05B067A9093F17814D3342396F5816D7B21463B934D83B21890F4F25D3239FDF91F271AE79AD2144"
+Command line defined: "COMPANY_NAME=Willy Sd"
+Command line defined: "APP_PRODUCT_FILENAME=StandPOS"
+Command line defined: "APP_INSTALLER_STORE_FILE=standpos-updater\installer.exe"
+Command line defined: "COMPRESSION_METHOD=7z"
+Command line defined: "ONE_CLICK"
+Command line defined: "RUN_AFTER_FINISH"
+Command line defined: "SHORTCUT_NAME=StandPOS"
+Command line defined: "UNINSTALL_DISPLAY_NAME=StandPOS 1.0.0"
+Command line defined: "ESTIMATED_SIZE=466774"
+Command line defined: "COMPRESS=auto"
+Command line defined: "BUILD_UNINSTALLER"
+Command line defined: "UNINSTALLER_OUT_FILE=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\__uninstaller-nsis-standpos.exe"
+Processing config: C:\Users\willy\AppData\Local\electron-builder\Cache\nsis\nsis-3.0.4.1\nsisconf.nsh
+Processing script file: "<stdin>" (UTF8)
+
+Processed 1 file, 10 command line commands, writing output (x86-unicode):
+
+Output: "C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\StandPOS Setup 1.0.0.exe"
+Install: 1 page (64 bytes), 1 section (16408 bytes), 45 instructions (1260 bytes), 3707 strings (32188 bytes), 26 language tables (5044 bytes).
+Uninstall: 1 page (128 bytes), 1 section (16408 bytes), 704 instructions (19712 bytes), 5849 strings (62834 bytes), 26 language tables (6500 bytes).
+
+Using zlib compression.
+
+EXE header size:               91648 / 39424 bytes
+Install code:                  12516 / 55428 bytes
+Install data:                      0 / 8 bytes
+Uninstall code+data:          128407 / 129034 bytes
+CRC (0xA3F16A07):                  4 / 4 bytes
+
+Total size:                   232575 / 223898 bytes (103.8%)
+  ÔÇó exited          command=makensis.exe code=0 pid=12508
+  ÔÇó executing       file=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\StandPOS Setup 1.0.0.exe args= env={
+  "__COMPAT_LAYER": "RunAsInvoker"
+}
+  ÔÇó executed        file=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\StandPOS Setup 1.0.0.exe
+  ÔÇó spawning        command=C:\Users\willy\AppData\Local\electron-builder\Cache\nsis\nsis-3.0.4.1\Bin\makensis.exe -WX -INPUTCHARSET UTF8 -DAPP_ID=com.standpos.pos -DAPP_GUID=7a2c5d61-eba7-5bdc-ab34-9f1f46fab4de -DUNINSTALL_APP_KEY=7a2c5d61-eba7-5bdc-ab34-9f1f46fab4de -DPRODUCT_NAME=StandPOS -DPRODUCT_FILENAME=StandPOS -DAPP_FILENAME=standpos -DAPP_DESCRIPTION=StandPOS desktop app -DVERSION=1.0.0 -DPROJECT_DIR=C:\Users\willy\OneDrive\Desktop\StandPOS -DBUILD_RESOURCES_DIR=C:\Users\willy\OneDrive\Desktop\StandPOS\build -DAPP_PACKAGE_NAME=standpos -DMUI_ICON=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\.icon-ico\icon.ico -DMUI_UNICON=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\.icon-ico\icon.ico -DAPP_64=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\standpos-1.0.0-x64.nsis.7z -DAPP_64_NAME=standpos-1.0.0-x64.nsis.7z -DAPP_64_HASH=0A93B2C1D6BFCCD2EE8FB4A9ACB226689093621F31D07D0C05B067A9093F17814D3342396F5816D7B21463B934D83B21890F4F25D3239FDF91F271AE79AD2144 -DCOMPANY_NAME=Willy Sd -DAPP_PRODUCT_FILENAME=StandPOS -DAPP_INSTALLER_STORE_FILE=standpos-updater\installer.exe -DCOMPRESSION_METHOD=7z -DONE_CLICK -DRUN_AFTER_FINISH -DSHORTCUT_NAME=StandPOS -DUNINSTALL_DISPLAY_NAME=StandPOS 1.0.0 -DESTIMATED_SIZE=466774 -DCOMPRESS=auto -DUNINSTALLER_OUT_FILE=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\__uninstaller-nsis-standpos.exe -XOutFile "C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\StandPOS Setup 1.0.0.exe" -XVIProductVersion 1.0.0.0 -XVIAddVersionKey /LANG=1033 ProductName "StandPOS" -XVIAddVersionKey /LANG=1033 ProductVersion "1.0.0" -XVIAddVersionKey /LANG=1033 LegalCopyright "Copyright ┬® 2026 Willy Sd" -XVIAddVersionKey /LANG=1033 FileDescription "StandPOS desktop app" -XVIAddVersionKey /LANG=1033 FileVersion "1.0.0" -XVIAddVersionKey /LANG=1033 CompanyName "Willy Sd" -XUnicode true -XSetCompressor zlib - cwd=C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\app-builder-lib\templates\nsis
+Command line defined: "APP_ID=com.standpos.pos"
+Command line defined: "APP_GUID=7a2c5d61-eba7-5bdc-ab34-9f1f46fab4de"
+Command line defined: "UNINSTALL_APP_KEY=7a2c5d61-eba7-5bdc-ab34-9f1f46fab4de"
+Command line defined: "PRODUCT_NAME=StandPOS"
+Command line defined: "PRODUCT_FILENAME=StandPOS"
+Command line defined: "APP_FILENAME=standpos"
+Command line defined: "APP_DESCRIPTION=StandPOS desktop app"
+Command line defined: "VERSION=1.0.0"
+Command line defined: "PROJECT_DIR=C:\Users\willy\OneDrive\Desktop\StandPOS"
+Command line defined: "BUILD_RESOURCES_DIR=C:\Users\willy\OneDrive\Desktop\StandPOS\build"
+Command line defined: "APP_PACKAGE_NAME=standpos"
+Command line defined: "MUI_ICON=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\.icon-ico\icon.ico"
+Command line defined: "MUI_UNICON=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\.icon-ico\icon.ico"
+Command line defined: "APP_64=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\standpos-1.0.0-x64.nsis.7z"
+Command line defined: "APP_64_NAME=standpos-1.0.0-x64.nsis.7z"
+Command line defined: "APP_64_HASH=0A93B2C1D6BFCCD2EE8FB4A9ACB226689093621F31D07D0C05B067A9093F17814D3342396F5816D7B21463B934D83B21890F4F25D3239FDF91F271AE79AD2144"
+Command line defined: "COMPANY_NAME=Willy Sd"
+Command line defined: "APP_PRODUCT_FILENAME=StandPOS"
+Command line defined: "APP_INSTALLER_STORE_FILE=standpos-updater\installer.exe"
+Command line defined: "COMPRESSION_METHOD=7z"
+Command line defined: "ONE_CLICK"
+Command line defined: "RUN_AFTER_FINISH"
+Command line defined: "SHORTCUT_NAME=StandPOS"
+Command line defined: "UNINSTALL_DISPLAY_NAME=StandPOS 1.0.0"
+Command line defined: "ESTIMATED_SIZE=466774"
+Command line defined: "COMPRESS=auto"
+Command line defined: "UNINSTALLER_OUT_FILE=C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\__uninstaller-nsis-standpos.exe"
+Processing config: C:\Users\willy\AppData\Local\electron-builder\Cache\nsis\nsis-3.0.4.1\nsisconf.nsh
+Processing script file: "<stdin>" (UTF8)
+
+Processed 1 file, 10 command line commands, writing output (x86-unicode):
+
+Output: "C:\Users\willy\OneDrive\Desktop\StandPOS\dist_electron\StandPOS Setup 1.0.0.exe"
+Can't open output file
+Error - aborting creation 
+process
+  ÔÇó exited          command=makensis.exe code=1 pid=10168
+  ÔÇó async task error  error=C:\Users\willy\AppData\Local\electron-builder\Cache\nsis\nsis-3.0.4.1\Bin\makensis.exe process failed ERR_ELECTRON_BUILDER_CANNOT_EXECUTE
+Exit code:
+1
+  Ô¿» C:\Users\willy\AppData\Local\electron-builder\Cache\nsis\nsis-3.0.4.1\Bin\makensis.exe process failed ERR_ELECTRON_BUILDER_CANNOT_EXECUTE
+Exit code:
+1  failedTask=build stackTrace=Error: C:\Users\willy\AppData\Local\electron-builder\Cache\nsis\nsis-3.0.4.1\Bin\makensis.exe process failed ERR_ELECTRON_BUILDER_CANNOT_EXECUTE
+Exit code:
+1
+    at ChildProcess.<anonymous> (C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\builder-util\src\util.ts:250:14)
+    at Object.onceWrapper (node:events:639:26)
+    at ChildProcess.emit (node:events:524:28)
+    at ChildProcess.cp.emit (C:\Users\willy\OneDrive\Desktop\StandPOS\node_modules\cross-spawn\lib\enoent.js:34:29)
+    at maybeClose (node:internal/child_process:1104:16)
+    at Process.ChildProcess._handle.onexit (node:internal/child_process:304:5)

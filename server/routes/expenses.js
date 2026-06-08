@@ -1,43 +1,54 @@
 const express = require('express');
 const router = express.Router();
-const { db } = require('../database');
+const supabase = require('../services/supabaseClient');
 const { v4: uuidv4 } = require('uuid');
+const { createAuditLog, getUserFromRequest } = require('../middleware/auditLogger');
 
 // Get all expenses
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const { start_date, end_date } = req.query;
-        let query = 'SELECT * FROM expenses';
-        const params = [];
+        const { start_date, end_date, limit = 1000 } = req.query;
+        let query = supabase.from('expenses').select('*');
 
         if (start_date && end_date) {
-            query += ' WHERE date BETWEEN ? AND ?';
-            params.push(start_date, end_date);
+            query = query.gte('date', start_date).lte('date', end_date);
         }
 
-        query += ' ORDER BY date DESC, created_at DESC';
-        const expenses = db.prepare(query).all(...params);
-        res.json(expenses);
+        const { data: expenses, error } = await query
+            .order('date', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(parseInt(limit, 10) || 1000);
+
+        if (error) throw error;
+        res.json(expenses || []);
     } catch (error) {
+        console.error('❌ Erreur GET /expenses:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Get expense by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
-        const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(req.params.id);
+        const { data: expense, error } = await supabase
+            .from('expenses')
+            .select('*')
+            .eq('id', req.params.id)
+            .maybeSingle();
+
+        if (error) throw error;
         if (!expense) {
             return res.status(404).json({ error: 'Expense not found' });
         }
         res.json(expense);
     } catch (error) {
+        console.error(`❌ Erreur GET /expenses/${req.params.id}:`, error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Create expense
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     try {
         const id = uuidv4();
         const {
@@ -49,102 +60,176 @@ router.post('/', (req, res) => {
             notes = ''
         } = req.body;
 
-        const stmt = db.prepare(`
-      INSERT INTO expenses (id, description, amount, category, payment_method, date, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
+        const { data: expense, error } = await supabase
+            .from('expenses')
+            .insert({
+                id,
+                description,
+                amount: Number(amount),
+                category: category || '',
+                payment_method,
+                date,
+                notes: notes || ''
+            })
+            .select()
+            .single();
 
-        stmt.run(id, description, amount, category, payment_method, date, notes);
+        if (error) throw error;
 
-        const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
+        // Audit log
+        const user = getUserFromRequest(req);
+        createAuditLog(
+            user.id,
+            user.username,
+            'CREATE_EXPENSE',
+            'expense',
+            id,
+            {
+                description: expense.description,
+                amount: expense.amount,
+                category: expense.category,
+                date: expense.date
+            }
+        );
+
         res.status(201).json(expense);
     } catch (error) {
+        console.error('❌ Erreur POST /expenses:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Update expense
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
+        const updates = { ...req.body };
 
-        const fields = Object.keys(updates)
-            .filter(key => key !== 'id' && key !== 'created_at')
-            .map(key => `${key} = ?`)
-            .join(', ');
+        // Sanitize updates
+        if (updates.id) delete updates.id;
+        if (updates.created_at) delete updates.created_at;
+        if (updates.updated_at) delete updates.updated_at;
 
-        const values = Object.keys(updates)
-            .filter(key => key !== 'id' && key !== 'created_at')
-            .map(key => updates[key]);
+        updates.updated_at = new Date().toISOString();
 
-        values.push(id);
+        const { data: expense, error } = await supabase
+            .from('expenses')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
 
-        const stmt = db.prepare(`
-      UPDATE expenses
-      SET ${fields}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
+        if (error) throw error;
 
-        stmt.run(...values);
+        // Audit log
+        const user = getUserFromRequest(req);
+        createAuditLog(
+            user.id,
+            user.username,
+            'UPDATE_EXPENSE',
+            'expense',
+            id,
+            {
+                description: expense.description,
+                amount: expense.amount,
+                updated_fields: Object.keys(updates)
+            }
+        );
 
-        const expense = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
         res.json(expense);
     } catch (error) {
+        console.error(`❌ Erreur PUT /expenses/${req.params.id}:`, error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Delete expense
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
     try {
-        const stmt = db.prepare('DELETE FROM expenses WHERE id = ?');
-        const result = stmt.run(req.params.id);
+        const { id } = req.params;
+        console.log(`[Delete] Tentative de suppression de la dépense: ${id}`);
 
-        if (result.changes === 0) {
+        // Get expense info before deletion
+        const { data: expense, error: getError } = await supabase
+            .from('expenses')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (getError) throw getError;
+        if (!expense) {
+            console.warn(`[Delete] Dépense non trouvée: ${id}`);
             return res.status(404).json({ error: 'Expense not found' });
         }
 
-        res.json({ message: 'Expense deleted successfully' });
+        const { error: deleteError } = await supabase
+            .from('expenses')
+            .delete()
+            .eq('id', id);
+
+        if (deleteError) throw deleteError;
+
+        // Audit log
+        const user = getUserFromRequest(req);
+        createAuditLog(
+            user.id,
+            user.username,
+            'DELETE_EXPENSE',
+            'expense',
+            id,
+            {
+                description: expense.description,
+                amount: expense.amount,
+                category: expense.category
+            }
+        );
+
+        console.log(`[Delete] Dépense ${id} supprimée avec succès`);
+        res.json({ message: 'Expense deleted successfully', id });
     } catch (error) {
+        console.error('❌ Erreur DELETE /expenses/:id:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Get expense statistics
-router.get('/stats/summary', (req, res) => {
+router.get('/stats/summary', async (req, res) => {
     try {
         const { start_date, end_date } = req.query;
-        let whereClause = '';
-        const params = [];
+        let query = supabase.from('expenses').select('amount, category');
 
         if (start_date && end_date) {
-            whereClause = ' WHERE date BETWEEN ? AND ?';
-            params.push(start_date, end_date);
+            query = query.gte('date', start_date).lte('date', end_date);
         }
 
-        const totalExpenses = db.prepare(`
-      SELECT COALESCE(SUM(amount), 0) as total
-      FROM expenses${whereClause}
-    `).get(...params);
+        const { data: rows, error } = await query;
+        if (error) throw error;
 
-        const expenseCount = db.prepare(`
-      SELECT COUNT(*) as count
-      FROM expenses${whereClause}
-    `).get(...params);
+        let totalExpenses = 0;
+        let expenseCount = 0;
+        const categoriesMap = {};
 
-        const byCategory = db.prepare(`
-      SELECT category, COALESCE(SUM(amount), 0) as total
-      FROM expenses${whereClause}
-      GROUP BY category
-    `).all(...params);
+        if (rows) {
+            expenseCount = rows.length;
+            rows.forEach(r => {
+                totalExpenses += Number(r.amount) || 0;
+                const cat = r.category || 'Non spécifié';
+                categoriesMap[cat] = (categoriesMap[cat] || 0) + (Number(r.amount) || 0);
+            });
+        }
+
+        const byCategory = Object.keys(categoriesMap).map(cat => ({
+            category: cat,
+            total: categoriesMap[cat]
+        }));
 
         res.json({
-            totalExpenses: totalExpenses.total,
-            expenseCount: expenseCount.count,
+            totalExpenses,
+            expenseCount,
             byCategory
         });
     } catch (error) {
+        console.error('❌ Erreur GET /expenses/stats/summary:', error);
         res.status(500).json({ error: error.message });
     }
 });

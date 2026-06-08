@@ -3,61 +3,77 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
     ShoppingCart, Search, Calendar, TrendingUp,
-    Package, Filter
+    Package, Filter, RefreshCw, Inbox, MapPin
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import ProductGrid from '@/components/purchases/ProductGrid';
 import QuickAddModal from '@/components/purchases/QuickAddModal';
 import PurchaseCart from '@/components/purchases/PurchaseCart';
 import CheckoutModal from '@/components/purchases/CheckoutModal';
+import PackagingVerificationModal from '@/components/purchases/PackagingVerificationModal';
 import GroupedPurchaseReceipt from '@/components/purchases/GroupedPurchaseReceipt';
 import PurchaseHistoryTable from '@/components/purchases/PurchaseHistoryTable';
 import CategoryTabs from '@/components/pos/CategoryTabs';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Purchases() {
+    const { formatCurrency } = useCurrency();
+    const { user } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [activeCategory, setActiveCategory] = useState(null);
     const [cart, setCart] = useState([]);
     const [showCheckout, setShowCheckout] = useState(false);
+    const [showVerification, setShowVerification] = useState(false);
     const [showReceipt, setShowReceipt] = useState(false);
     const [lastPurchaseGroup, setLastPurchaseGroup] = useState(null);
+    const [receptionTarget, setReceptionTarget] = useState(null);
 
     const queryClient = useQueryClient();
 
     // Fetch purchases (individual)
-    const { data: purchases = [], isLoading: loadingPurchases } = useQuery({
+    const { data: purchases = [], isLoading: loadingPurchases, isRefetching: refetchingPurchases, refetch: refetchPurchases } = useQuery({
         queryKey: ['purchases'],
-        queryFn: async () => {
-            const response = await fetch('http://localhost:3001/api/purchases');
-            if (!response.ok) throw new Error('Failed to fetch purchases');
-            return response.json();
-        }
+        queryFn: () => base44.entities.Purchase.list()
     });
 
     // Fetch purchase groups
-    const { data: purchaseGroups = [] } = useQuery({
+    const { data: purchaseGroups = [], isLoading: loadingGroups, refetch: refetchGroups } = useQuery({
         queryKey: ['purchase-groups'],
-        queryFn: async () => {
-            const response = await fetch('http://localhost:3001/api/purchase-groups');
-            if (!response.ok) throw new Error('Failed to fetch purchase groups');
-            return response.json();
-        }
+        queryFn: () => base44.entities.PurchaseGroup.list()
+    });
+
+    // Fetch locations (for displaying destination names)
+    const { data: locations = [] } = useQuery({
+        queryKey: ['locations'],
+        queryFn: () => base44.entities.Location.list()
     });
 
     // Fetch products
-    const { data: products = [], isLoading: loadingProducts } = useQuery({
+    const { data: products = [], isLoading: loadingProducts, refetch: refetchProducts } = useQuery({
         queryKey: ['products'],
         queryFn: () => base44.entities.Product.list()
     });
 
     // Fetch categories
-    const { data: categories = [] } = useQuery({
+    const { data: categories = [], isLoading: loadingCategories, refetch: refetchCategories } = useQuery({
         queryKey: ['categories'],
         queryFn: () => base44.entities.Category.list('order')
     });
+
+    const handleRefresh = () => {
+        refetchPurchases();
+        refetchGroups();
+        refetchProducts();
+        refetchCategories();
+    };
+
+    const isRefreshing = loadingPurchases || refetchingPurchases || loadingGroups || loadingProducts || loadingCategories;
 
     // Combined purchases for history (individual + groups)
     const allPurchases = useMemo(() => {
@@ -87,9 +103,40 @@ export default function Purchases() {
         return { total, today };
     }, [purchases, purchaseGroups, allPurchases]);
 
+    // Pending receptions: groups waiting to be received at the current user's location
+    // Admin sees all pending; stock_manager sees only their location's pending orders.
+    const pendingReceptions = useMemo(() => {
+        if (!user) return [];
+        const isAdmin = user.role === 'admin';
+        return purchaseGroups.filter(g => {
+            if (g.reception_status !== 'pending') return false;
+            if (isAdmin) return true;
+            return g.location_id && user.location_id && g.location_id === user.location_id;
+        });
+    }, [purchaseGroups, user]);
+
+    const locationsById = useMemo(() => {
+        const m = {};
+        locations.forEach(l => { m[l.id] = l; });
+        return m;
+    }, [locations]);
+
+    const openReceptionChecklist = (group) => {
+        setReceptionTarget(group);
+        setShowVerification(true);
+    };
+
+    const closeReceptionChecklist = () => {
+        setShowVerification(false);
+        setReceptionTarget(null);
+    };
+
     // Filtered products
     const filteredProducts = useMemo(() => {
         return products.filter(product => {
+            // Only show products that track stock
+            if (!product.track_stock) return false;
+
             const matchesCategory = !activeCategory || product.category_id === activeCategory;
             const matchesSearch = !searchQuery.trim() ||
                 product.name?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -97,10 +144,9 @@ export default function Purchases() {
         });
     }, [products, searchQuery, activeCategory]);
 
-    // Create group mutation
     const createGroupMutation = useMutation({
         mutationFn: async (data) => {
-            const response = await fetch('http://localhost:3001/api/purchase-groups', {
+            const response = await fetch('/api/purchase-groups', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -109,24 +155,27 @@ export default function Purchases() {
             return response.json();
         },
         onSuccess: (purchaseGroup) => {
+            console.log('Purchase group created:', purchaseGroup);
             queryClient.invalidateQueries({ queryKey: ['purchase-groups'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             setLastPurchaseGroup(purchaseGroup);
             setCart([]);
             setShowCheckout(false);
+            // Show receipt directly. The reception checklist is now triggered by the recipient
+            // from the "Réceptions en attente" section (or, for non-packaging orders,
+            // the order is already validated and stock is added).
             setShowReceipt(true);
         },
         onError: (error) => {
             console.error('Error creating purchase group:', error);
-            alert(`Erreur: ${error.message}`);
+            toast.error(`Erreur: ${error.message}`);
         }
     });
 
-    // Delete mutation (works for both individual and groups)
     const deleteMutation = useMutation({
         mutationFn: async ({ id, type }) => {
             const endpoint = type === 'group' ? 'purchase-groups' : 'purchases';
-            const response = await fetch(`http://localhost:3001/api/${endpoint}/${id}`, {
+            const response = await fetch(`/api/${endpoint}/${id}`, {
                 method: 'DELETE'
             });
             if (!response.ok) throw new Error('Failed to delete');
@@ -136,6 +185,10 @@ export default function Purchases() {
             queryClient.invalidateQueries({ queryKey: ['purchases'] });
             queryClient.invalidateQueries({ queryKey: ['purchase-groups'] });
             queryClient.invalidateQueries({ queryKey: ['products'] });
+            toast.success('Suppression effectuée avec succès');
+        },
+        onError: (error) => {
+            toast.error(`Erreur lors de la suppression: ${error.message}`);
         }
     });
 
@@ -165,9 +218,15 @@ export default function Purchases() {
     }, []);
 
     const handleClearCart = useCallback(() => {
-        if (window.confirm('Vider le panier ?')) {
-            setCart([]);
-        }
+        toast('Vider le panier ?', {
+            action: {
+                label: 'Vider',
+                onClick: () => {
+                    setCart([]);
+                    toast.success('Panier vidé');
+                }
+            },
+        });
     }, []);
 
     const handleProductClick = useCallback((product) => {
@@ -176,7 +235,7 @@ export default function Purchases() {
 
     const handleCheckout = useCallback(() => {
         if (cart.length === 0) {
-            alert('Le panier est vide');
+            toast.info('Le panier est vide');
             return;
         }
         setShowCheckout(true);
@@ -188,27 +247,45 @@ export default function Purchases() {
 
     const handleDelete = useCallback((id, type) => {
         const message = type === 'group'
-            ? 'Supprimer cet approvisionnement groupé ? Le stock sera ajusté en conséquence.'
-            : 'Supprimer cet achat ? Le stock sera ajusté en conséquence.';
+            ? 'Supprimer cet approvisionnement groupé ?'
+            : 'Supprimer cet achat ?';
+        const description = 'Le stock sera ajusté en conséquence.';
 
-        if (window.confirm(message)) {
-            deleteMutation.mutate({ id, type });
-        }
+        toast(message, {
+            description,
+            action: {
+                label: 'Supprimer',
+                onClick: () => deleteMutation.mutate({ id, type })
+            }
+        });
     }, [deleteMutation]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/30 p-6">
             <div className="max-w-[1800px] mx-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
+                <div className="flex gap-6 items-start">
                     {/* Main content */}
-                    <div className="space-y-6">
+                    <div className="flex-1 min-w-0 space-y-6">
                         {/* Header */}
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                                <ShoppingCart className="w-7 h-7 text-green-600" />
-                                Achats & Approvisionnement
-                            </h1>
-                            <p className="text-gray-500">Cliquez sur un produit pour l'ajouter au panier</p>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                                    <ShoppingCart className="w-7 h-7 text-green-600" />
+                                    Achats & Approvisionnement
+                                </h1>
+                                <p className="text-gray-500">Cliquez sur un produit pour l'ajouter au panier</p>
+                            </div>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleRefresh}
+                                disabled={isRefreshing}
+                                className="rounded-xl bg-white shadow-sm hover:shadow-md transition-all gap-2"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                Actualiser
+                            </Button>
                         </div>
 
                         {/* Stats Cards */}
@@ -219,7 +296,7 @@ export default function Purchases() {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500 mb-1">Total Achats</p>
-                                                <h3 className="text-2xl font-bold text-gray-900">{stats.total.toLocaleString()} Ar</h3>
+                                                <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(stats.total)}</h3>
                                             </div>
                                             <div className="p-3 bg-green-100 rounded-xl">
                                                 <TrendingUp className="w-6 h-6 text-green-600" />
@@ -235,7 +312,7 @@ export default function Purchases() {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500 mb-1">Achats du Jour</p>
-                                                <h3 className="text-2xl font-bold text-gray-900">{stats.today.toLocaleString()} Ar</h3>
+                                                <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(stats.today)}</h3>
                                             </div>
                                             <div className="p-3 bg-emerald-100 rounded-xl">
                                                 <Calendar className="w-6 h-6 text-emerald-600" />
@@ -265,7 +342,7 @@ export default function Purchases() {
                         {/* Search and Filters */}
                         <div className="space-y-3">
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <Input
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -282,6 +359,59 @@ export default function Purchases() {
                                 />
                             </div>
                         </div>
+
+                        {/* Pending Receptions */}
+                        {pendingReceptions.length > 0 && (
+                            <div className="bg-amber-50/60 border border-amber-200 rounded-2xl p-5">
+                                <h2 className="text-lg font-bold text-amber-800 mb-3 flex items-center gap-2">
+                                    <Inbox className="w-5 h-5" />
+                                    Réceptions en attente ({pendingReceptions.length})
+                                </h2>
+                                <p className="text-sm text-amber-700 mb-4">
+                                    Commandes en transit destinées à votre emplacement. Ouvrez la checklist pour vérifier les emballages et valider la réception.
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {pendingReceptions.map(g => {
+                                        const destination = locationsById[g.location_id];
+                                        return (
+                                            <div
+                                                key={g.id}
+                                                className="bg-white rounded-xl border border-amber-200 p-4 flex items-start justify-between gap-3"
+                                            >
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="font-mono text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+                                                            {g.reference}
+                                                        </span>
+                                                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-medium">
+                                                            <Inbox className="w-3 h-3" />
+                                                            En transit
+                                                        </span>
+                                                    </div>
+                                                    <div className="font-semibold text-gray-800 truncate">
+                                                        {g.supplier_name || 'Fournisseur inconnu'}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                        <MapPin className="w-3 h-3" />
+                                                        {destination ? destination.name : 'Destination inconnue'}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        {g.items?.length || 0} produits • {formatCurrency(Number(g.total_amount) || 0)}
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => openReceptionChecklist(g)}
+                                                    className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg"
+                                                >
+                                                    Réceptionner
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Products Grid */}
                         <div>
@@ -311,7 +441,7 @@ export default function Purchases() {
                     </div>
 
                     {/* Sidebar - Cart */}
-                    <div className="lg:sticky lg:top-6 h-[calc(100vh-3rem)]">
+                    <div className="sticky top-6 h-[calc(100vh-3rem)] w-[340px] shrink-0">
                         <PurchaseCart
                             items={cart}
                             onUpdateItem={handleUpdateCartItem}
@@ -336,6 +466,26 @@ export default function Purchases() {
                     items={cart}
                     onConfirm={handleConfirmCheckout}
                     isLoading={createGroupMutation.isPending}
+                />
+
+                <PackagingVerificationModal
+                    key={receptionTarget?.id || (showVerification ? 'open' : 'closed')}
+                    open={showVerification}
+                    onClose={closeReceptionChecklist}
+                    purchaseGroup={receptionTarget || lastPurchaseGroup}
+                    onVerified={() => {
+                        setShowVerification(false);
+                        if (receptionTarget) {
+                            // After reception: refresh stock, locations, and the list of pending groups
+                            queryClient.invalidateQueries({ queryKey: ['purchase-groups'] });
+                            queryClient.invalidateQueries({ queryKey: ['products'] });
+                            queryClient.invalidateQueries({ queryKey: ['locations'] });
+                            setReceptionTarget(null);
+                            toast.success('Réception validée. Le stock a été ajouté.');
+                        } else {
+                            setShowReceipt(true);
+                        }
+                    }}
                 />
 
                 <GroupedPurchaseReceipt

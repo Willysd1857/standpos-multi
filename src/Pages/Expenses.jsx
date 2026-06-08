@@ -1,19 +1,23 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { formatAmount } from '@/lib/utils';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useAppDate } from '@/hooks/useAppDate';
+import { useAutoFocus } from '@/hooks/useAutoFocus';
 import {
   Wallet, Search, Calendar, Plus, Trash2, TrendingDown,
-  ArrowUpRight, DollarSign, Filter
+  ArrowUpRight, DollarSign, Filter, RefreshCw, ChevronDown
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 
 const CATEGORIES = [
   { value: 'autre', label: 'Autre' },
@@ -22,11 +26,13 @@ const CATEGORIES = [
   { value: 'internet', label: 'Internet' },
   { value: 'salaires', label: 'Salaires' },
   { value: 'maintenance', label: 'Maintenance' },
-  { value: 'transport', label: 'Transport' }
+  { value: 'transport', label: 'Transport' },
+  { value: 'achats_stock', label: 'Achats Stock' }
 ];
 
 export default function Expenses() {
   const { formatDate } = useAppDate();
+  const { formatCurrency, convertToAriary, getCurrencySymbol } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -36,32 +42,41 @@ export default function Expenses() {
     category: 'autre',
     date: new Date().toISOString().split('T')[0]
   });
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+
+  // Auto-focus hook for input fields
+  const descriptionRef = useAutoFocus([isAddModalOpen]);
+  const amountRef = useAutoFocus([]);
 
   const queryClient = base44.queryClient || useQueryClient();
 
   // Fetch expenses
-  const { data: expenses = [], isLoading } = useQuery({
+  const { data: expenses = [], isLoading: loadingExpenses, isRefetching: refetchingExpenses, refetch: refetchExpenses } = useQuery({
     queryKey: ['expenses'],
     queryFn: () => base44.entities.Expense.list()
   });
 
   // Fetch purchases
-  const { data: purchases = [] } = useQuery({
+  const { data: purchases = [], isLoading: loadingPurchases, refetch: refetchPurchases } = useQuery({
     queryKey: ['purchases'],
-    queryFn: async () => {
-      const res = await fetch('http://localhost:3001/api/purchases');
-      return res.ok ? res.json() : [];
-    }
+    queryFn: () => base44.entities.Purchase.list()
   });
 
   // Fetch purchase groups
-  const { data: purchaseGroups = [] } = useQuery({
+  const { data: purchaseGroups = [], isLoading: loadingGroups, refetch: refetchGroups } = useQuery({
     queryKey: ['purchase-groups'],
-    queryFn: async () => {
-      const res = await fetch('http://localhost:3001/api/purchase-groups');
-      return res.ok ? res.json() : [];
-    }
+    queryFn: () => base44.entities.PurchaseGroup.list()
   });
+
+  const handleRefresh = () => {
+    refetchExpenses();
+    refetchPurchases();
+    refetchGroups();
+  };
+
+  const isRefreshing = loadingExpenses || refetchingExpenses || loadingPurchases || loadingGroups;
+  const isLoading = loadingExpenses && expenses.length === 0;
 
   // Memoized calculations - calculés une seule fois quand expenses, purchases, purchaseGroups changent
   const stats = useMemo(() => {
@@ -87,9 +102,37 @@ export default function Expenses() {
     return { total, today };
   }, [expenses, purchases, purchaseGroups]);
 
-  // Memoized filtered expenses - recalculé seulement quand expenses ou searchQuery change
+  // Consolidated list of all money out (Expenses + Purchases)
+  const consolidatedExpenses = useMemo(() => {
+    const operational = expenses.map(e => ({
+      ...e,
+      source: 'operational'
+    }));
+
+    const groups = purchaseGroups.map(pg => ({
+      id: pg.id,
+      description: `Achat: ${pg.reference} ${pg.supplier_name ? `(${pg.supplier_name})` : ''}`,
+      amount: pg.total_amount,
+      category: 'achats_stock',
+      date: pg.date || pg.created_at,
+      source: 'purchase'
+    }));
+
+    const individuals = purchases.map(p => ({
+      id: p.id,
+      description: `Achat: ${p.product_name} ${p.supplier_name ? `(${p.supplier_name})` : ''}`,
+      amount: p.total_amount,
+      category: 'achats_stock',
+      date: p.date || p.created_at,
+      source: 'purchase'
+    }));
+
+    return [...operational, ...groups, ...individuals].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [expenses, purchaseGroups, purchases]);
+
+  // Memoized filtered results
   const filteredExpenses = useMemo(() => {
-    return expenses.filter(e => {
+    return consolidatedExpenses.filter(e => {
       const matchSearch = !searchQuery.trim() ||
         e.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         e.category?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -98,7 +141,7 @@ export default function Expenses() {
 
       return matchSearch && matchCategory;
     });
-  }, [expenses, searchQuery, categoryFilter]);
+  }, [consolidatedExpenses, searchQuery, categoryFilter]);
 
   // Mutations
   const createMutation = useMutation({
@@ -119,15 +162,37 @@ export default function Expenses() {
     },
     onError: (error) => {
       console.error('Error creating expense:', error);
-      alert(`Erreur: ${error.message}`);
+      toast.error(`Erreur: ${error.message}`);
     }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Expense.delete(id),
+    onMutate: async (id) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['expenses'] });
+
+      // Snapshot previous value
+      const previousExpenses = queryClient.getQueryData(['expenses']);
+
+      // Optimistically remove from UI
+      queryClient.setQueryData(['expenses'], (old) =>
+        old ? old.filter(e => e.id !== id) : []
+      );
+
+      return { previousExpenses };
+    },
+    onError: (err, id, context) => {
+      // Rollback on error
+      queryClient.setQueryData(['expenses'], context.previousExpenses);
+      toast.error(`Erreur lors de la suppression: ${err.message}`);
+    },
     onSuccess: () => {
+      toast.success('Dépense supprimée avec succès');
+    },
+    onSettled: () => {
+      // Refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      alert('Dépense supprimée');
     }
   });
 
@@ -138,14 +203,18 @@ export default function Expenses() {
 
     createMutation.mutate({
       ...newExpense,
-      amount: Number(newExpense.amount)
+      amount: convertToAriary(Number(newExpense.amount))
     });
   }, [newExpense, createMutation]);
 
   const handleDelete = useCallback((id) => {
-    if (window.confirm('Supprimer cette dépense ?')) {
-      deleteMutation.mutate(id);
-    }
+    toast('Confirmer la suppression', {
+      description: 'Êtes-vous sûr de vouloir supprimer cette dépense ? Cette action est irréversible.',
+      action: {
+        label: 'Supprimer',
+        onClick: () => deleteMutation.mutate(id)
+      }
+    });
   }, [deleteMutation]);
 
   const handleSearchChange = useCallback((e) => {
@@ -161,20 +230,34 @@ export default function Expenses() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
               <Wallet className="w-7 h-7 text-red-600" />
               Gestion des Dépenses
             </h1>
             <p className="text-gray-500">Suivez et gérez vos dépenses opérationnelles</p>
           </div>
-          <Button
-            onClick={() => setIsAddModalOpen(true)}
-            className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white rounded-xl shadow-lg shadow-red-500/30"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Nouvelle Dépense
-          </Button>
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="rounded-xl bg-white shadow-sm hover:shadow-md transition-all gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Actualiser
+            </Button>
+
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white rounded-xl shadow-lg shadow-red-500/30"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Nouvelle Dépense
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -185,7 +268,7 @@ export default function Expenses() {
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-1">Total Dépenses</p>
-                    <h3 className="text-2xl font-bold text-gray-900">{stats.total.toLocaleString()} Ar</h3>
+                    <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(stats.total)}</h3>
                   </div>
                   <div className="p-3 bg-red-100 rounded-xl">
                     <TrendingDown className="w-6 h-6 text-red-600" />
@@ -201,7 +284,7 @@ export default function Expenses() {
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-sm font-medium text-gray-500 mb-1">Dépenses du Jour</p>
-                    <h3 className="text-2xl font-bold text-gray-900">{stats.today.toLocaleString()} Ar</h3>
+                    <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(stats.today)}</h3>
                   </div>
                   <div className="p-3 bg-orange-100 rounded-xl">
                     <Calendar className="w-6 h-6 text-orange-600" />
@@ -215,7 +298,7 @@ export default function Expenses() {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <Input
               value={searchQuery}
               onChange={handleSearchChange}
@@ -223,18 +306,50 @@ export default function Expenses() {
               className="pl-10 rounded-xl bg-white border-gray-200"
             />
           </div>
-          <Select value={categoryFilter} onValueChange={handleCategoryFilterChange}>
-            <SelectTrigger className="w-[200px] rounded-xl bg-white border-gray-200">
-              <Filter className="w-4 h-4 mr-2 text-gray-500" />
-              <SelectValue placeholder="Catégorie" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toutes catégories</SelectItem>
-              {CATEGORIES.map(cat => (
-                <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+              className="flex h-10 w-[200px] items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+            >
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-500" />
+                <span>{categoryFilter === 'all' ? 'Toutes catégories' : CATEGORIES.find(c => c.value === categoryFilter)?.label}</span>
+              </div>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </button>
+            {isFilterMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsFilterMenuOpen(false)}
+                />
+                <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-xl border border-gray-100 bg-white p-1 shadow-lg ring-1 ring-black ring-opacity-5">
+                  <button
+                    onClick={() => {
+                      handleCategoryFilterChange('all');
+                      setIsFilterMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${categoryFilter === 'all' ? 'bg-red-50 text-red-700 font-medium' : 'hover:bg-gray-50'}`}
+                  >
+                    Toutes catégories
+                  </button>
+                  {CATEGORIES.map(cat => (
+                    <button
+                      key={cat.value}
+                      onClick={() => {
+                        handleCategoryFilterChange(cat.value);
+                        setIsFilterMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 text-sm rounded-lg transition-colors ${categoryFilter === cat.value ? 'bg-red-50 text-red-700 font-medium' : 'hover:bg-gray-50'}`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* List */}
@@ -271,7 +386,10 @@ export default function Expenses() {
                     >
                       <TableCell className="font-medium text-gray-900">{expense.description}</TableCell>
                       <TableCell>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${expense.source === 'purchase'
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-gray-100 text-gray-800'
+                          }`}>
                           {CATEGORIES.find(c => c.value === expense.category)?.label || expense.category || 'Autre'}
                         </span>
                       </TableCell>
@@ -279,17 +397,21 @@ export default function Expenses() {
                         {formatDate(expense.date, 'dd MMMM yyyy')}
                       </TableCell>
                       <TableCell className="text-right font-bold text-red-600">
-                        -{Number(expense.amount).toLocaleString()} Ar
+                        -{formatCurrency(expense.amount)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(expense.id)}
-                          className="text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {expense.source === 'operational' ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(expense.id)}
+                            className="text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        ) : (
+                          <span className="text-[10px] text-gray-400 font-medium px-2 italic">Auto</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
@@ -309,6 +431,7 @@ export default function Expenses() {
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Input
+                  ref={descriptionRef}
                   id="description"
                   value={newExpense.description}
                   onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
@@ -317,31 +440,57 @@ export default function Expenses() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="amount">Montant (Ar)</Label>
+                <Label htmlFor="amount">Montant ({getCurrencySymbol()})</Label>
                 <Input
+                  ref={amountRef}
                   id="amount"
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={newExpense.amount}
-                  onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                    setNewExpense({ ...newExpense, amount: val });
+                  }}
+                  onWheel={(e) => e.target.blur()}
                   placeholder="0"
                   required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Catégorie</Label>
-                <Select
-                  value={newExpense.category}
-                  onValueChange={(val) => setNewExpense({ ...newExpense, category: val })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choisir une catégorie" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map(cat => (
-                      <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span>{CATEGORIES.find(c => c.value === newExpense.category)?.label || "Choisir une catégorie"}</span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </button>
+                  {isCategoryMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-[60]"
+                        onClick={() => setIsCategoryMenuOpen(false)}
+                      />
+                      <div className="absolute left-0 top-full z-[70] mt-1 w-full max-h-60 overflow-auto rounded-md border bg-white p-1 shadow-md">
+                        {CATEGORIES.map(cat => (
+                          <button
+                            key={cat.value}
+                            type="button"
+                            onClick={() => {
+                              setNewExpense({ ...newExpense, category: cat.value });
+                              setIsCategoryMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center px-3 py-2 text-sm rounded-sm transition-colors ${newExpense.category === cat.value ? 'bg-red-50 text-red-700 font-medium' : 'hover:bg-gray-50'}`}
+                          >
+                            {cat.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="date">Date</Label>
@@ -364,6 +513,7 @@ export default function Expenses() {
             </form>
           </DialogContent>
         </Dialog>
+
       </div>
     </div>
   );

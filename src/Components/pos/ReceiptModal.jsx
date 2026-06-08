@@ -8,6 +8,9 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Printer, X, Download, Crown, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { formatQuantity } from '@/lib/utils';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { useAppSettings } from '@/contexts/AppSettingsContext';
 
 const paymentLabels = {
   cash: 'Espèces',
@@ -17,6 +20,8 @@ const paymentLabels = {
 };
 
 export default function ReceiptModal({ open, onClose, transaction }) {
+  const { formatCurrency } = useCurrency();
+  const { enableTables } = useAppSettings();
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: () => base44.entities.Settings.get()
@@ -30,33 +35,50 @@ export default function ReceiptModal({ open, onClose, transaction }) {
     const printWindow = window.open('', '', 'width=400,height=600');
     const receiptContent = document.getElementById('receipt-content');
 
+    // Fix relative image paths for the new window
+    let content = receiptContent.innerHTML;
+    const origin = window.location.origin;
+    content = content.replace(/src="\/uploads\//g, `src="${origin}/uploads/`);
+
     printWindow.document.write(`
       <html>
         <head>
           <title>Facture ${transaction?.reference}</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
           <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
+            * { 
+              margin: 0; 
+              padding: 0; 
+              box-sizing: border-box; 
+              font-family: 'Courier Prime', 'Courier New', monospace !important;
+              font-weight: 700 !important;
+              text-transform: uppercase !important;
+            }
             body { 
-              font-family: 'Courier New', monospace; 
-              padding: 20px;
+              font-family: 'Courier Prime', 'Courier New', monospace !important;
+              padding: 10px;
               font-size: 12px;
-              line-height: 1.4;
+              line-height: 1.3;
+              font-weight: 700;
             }
             .receipt { max-width: 300px; margin: 0 auto; }
-            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #000; padding-bottom: 15px; }
-            .logo { max-width: 80px; margin: 0 auto 10px; }
-            .business-name { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
-            .info-line { font-size: 11px; margin: 2px 0; }
-            .section { margin: 15px 0; }
-            .section-title { font-weight: bold; margin-bottom: 8px; text-transform: uppercase; font-size: 11px; }
-            .item { display: flex; justify-content: space-between; margin: 5px 0; }
-            .divider { border-top: 1px dashed #666; margin: 10px 0; }
-            .subtotal { font-size: 12px; margin-top: 10px; }
-            .vip-charge { font-size: 12px; margin-top: 5px; color: #f59e0b; font-weight: bold; }
-            .total { font-size: 14px; font-weight: bold; margin-top: 10px; padding-top: 10px; border-top: 2px solid #000; }
-            .payment-info { margin-top: 15px; padding-top: 15px; border-top: 1px dashed #666; font-size: 12px; }
-            .amount-due { color: #dc2626; font-weight: bold; background: #fee2e2; padding: 5px; border-radius: 4px; margin-top: 5px; }
-            .footer { text-align: center; margin-top: 20px; padding-top: 15px; border-top: 2px dashed #000; font-size: 11px; }
+            .header { display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 8px; gap: 15px; }
+            .header-info { flex: 1; }
+            .logo { width: 80px; height: 60px; object-fit: contain; object-position: right center; }
+            .business-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+            .info-line { font-size: 10px; margin: 1px 0; }
+            .section { margin: 8px 0; }
+            .section-title { font-weight: 700; margin-bottom: 5px; text-transform: uppercase; font-size: 10px; }
+            .item { display: flex; justify-content: space-between; margin: 3px 0; }
+            .divider { border-top: 1px dashed #666; margin: 5px 0; }
+            .subtotal { font-size: 11px; margin-top: 5px; }
+            .vip-charge { font-size: 11px; margin-top: 3px; color: #f59e0b; font-weight: 700; }
+            .total { font-size: 14px; font-weight: 700; margin-top: 5px; padding-top: 5px; border-top: 2px solid #000; }
+            .payment-info { margin-top: 8px; font-size: 11px; }
+            .amount-due { color: #dc2626; font-weight: 700; background: #fee2e2; padding: 4px; border-radius: 4px; margin-top: 5px; }
+            .footer { text-align: center; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #000; font-size: 10px; }
             .vip-badge { 
               background: linear-gradient(135deg, #fbbf24, #f59e0b);
               color: white;
@@ -64,7 +86,7 @@ export default function ReceiptModal({ open, onClose, transaction }) {
               border-radius: 4px;
               display: inline-block;
               font-size: 10px;
-              font-weight: bold;
+              font-weight: 700;
               margin-top: 5px;
             }
             @media print {
@@ -74,7 +96,9 @@ export default function ReceiptModal({ open, onClose, transaction }) {
           </style>
         </head>
         <body>
-          ${receiptContent.innerHTML}
+          <div class="receipt">
+            ${content}
+          </div>
         </body>
       </html>
     `);
@@ -83,8 +107,20 @@ export default function ReceiptModal({ open, onClose, transaction }) {
     setTimeout(() => {
       printWindow.print();
       printWindow.close();
-    }, 250);
+    }, 500);
   };
+
+  // Debug logging to understand why amount_given isn't showing
+  useEffect(() => {
+    if (transaction && open) {
+      console.log('🧾 Receipt Transaction Data:', {
+        payment_method: transaction.payment_method,
+        amount_given: transaction.amount_given,
+        total_amount: transaction.total_amount,
+        shouldShow: String(transaction.payment_method).toLowerCase() === 'cash' && transaction.amount_given > 0
+      });
+    }
+  }, [transaction, open]);
 
   if (!transaction) return null;
 
@@ -115,25 +151,36 @@ export default function ReceiptModal({ open, onClose, transaction }) {
             <div id="receipt-content" className="receipt">
               {/* Header */}
               <div className="header">
+                <div className="header-info">
+                  <div className="business-name">{businessInfo.business_name || 'StandPOS'}</div>
+                  {businessInfo.business_address && <div className="info-line">{businessInfo.business_address}</div>}
+                  {businessInfo.business_phone && <div className="info-line">Tél: {businessInfo.business_phone}</div>}
+                  {businessInfo.nif && (
+                    <div className="info-line">
+                      NIF: {businessInfo.nif}
+                    </div>
+                  )}
+                  {businessInfo.stat && (
+                    <div className="info-line">
+                      STAT: {businessInfo.stat}
+                    </div>
+                  )}
+                </div>
                 {businessInfo.business_logo && (
                   <img src={businessInfo.business_logo} alt="Logo" className="logo" />
                 )}
-                <div className="business-name">{businessInfo.business_name || 'Moonlight Snack-Bar'}</div>
-                <div className="info-line">Antsirabe • Tél: 0345678901 • Email: moonlight@gmail.com</div>
-                <div className="info-line">NIF: 123456789 • STAT: 111023456789</div>
               </div>
 
               {/* Transaction info */}
               <div className="section">
                 <div className="item">
-                  <span>Facture N°:</span>
-                  <span style={{ fontWeight: 'bold' }}>{transaction.reference}</span>
+                  <span style={{ fontWeight: 'bold' }}>Facture N°: {transaction.reference}</span>
                 </div>
                 <div className="item">
                   <span>Date:</span>
                   <span>{formatDate(transaction.created_date)}</span>
                 </div>
-                {transaction.table_number && (
+                {enableTables && transaction.table_number && (
                   <div className="item">
                     <span>Table:</span>
                     <span style={{ fontWeight: 'bold' }}>{transaction.table_number}</span>
@@ -151,7 +198,7 @@ export default function ReceiptModal({ open, onClose, transaction }) {
                     <span>{transaction.phone_number}</span>
                   </div>
                 )}
-                {transaction.is_vip && (
+                {enableTables && transaction.is_vip && (
                   <div style={{ textAlign: 'center' }}>
                     <span className="vip-badge">★ TABLE VIP ★</span>
                   </div>
@@ -160,6 +207,12 @@ export default function ReceiptModal({ open, onClose, transaction }) {
                   <span>Paiement:</span>
                   <span>{paymentLabels[transaction.payment_method] || transaction.payment_method}</span>
                 </div>
+                {transaction.updated_at && (
+                  <div className="item">
+                    <span>Date règlement:</span>
+                    <span style={{ fontWeight: 'bold' }}>{formatDate(transaction.updated_at)}</span>
+                  </div>
+                )}
                 {transaction.transaction_ref && ['mvola', 'orange_money', 'airtel_money', 'visa'].includes(transaction.payment_method) && (
                   <div className="item">
                     <span>Réf. Transaction:</span>
@@ -168,7 +221,7 @@ export default function ReceiptModal({ open, onClose, transaction }) {
                 )}
               </div>
 
-              <div className="divider"></div>
+
 
               {/* Items */}
               <div className="section">
@@ -179,14 +232,14 @@ export default function ReceiptModal({ open, onClose, transaction }) {
                       {item.product_name}
                     </div>
                     <div className="item" style={{ fontSize: '11px', paddingLeft: '10px' }}>
-                      <span>{item.quantity} x {item.unit_price?.toLocaleString()} Ar</span>
-                      <span>{item.total?.toLocaleString()} Ar</span>
+                      <span>{formatQuantity(item.quantity, item.unit)} {item.unit} x {formatCurrency(item.unit_price)}</span>
+                      <span>{formatCurrency(item.total)}</span>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="divider"></div>
+
 
               {/* Subtotal and VIP Charge */}
               {transaction.is_vip && businessInfo.vip_charge ? (
@@ -194,13 +247,13 @@ export default function ReceiptModal({ open, onClose, transaction }) {
                   <div className="subtotal">
                     <div className="item">
                       <span>Sous-total</span>
-                      <span>{((transaction.total_amount || 0) - (businessInfo.vip_charge || 0)).toLocaleString()} Ar</span>
+                      <span>{formatCurrency((transaction.total_amount || 0) - (businessInfo.vip_charge || 0))}</span>
                     </div>
                   </div>
                   <div className="vip-charge">
                     <div className="item">
                       <span>★ Frais Table VIP</span>
-                      <span>+{businessInfo.vip_charge?.toLocaleString()} Ar</span>
+                      <span>+{formatCurrency(businessInfo.vip_charge)}</span>
                     </div>
                   </div>
                 </>
@@ -210,24 +263,51 @@ export default function ReceiptModal({ open, onClose, transaction }) {
               <div className="total">
                 <div className="item" style={{ fontSize: '16px' }}>
                   <span>TOTAL</span>
-                  <span>{transaction.total_amount?.toLocaleString()} Ar</span>
+                  <span>{formatCurrency(transaction.total_amount)}</span>
                 </div>
               </div>
 
               {/* Payment Information */}
               {(transaction.amount_paid !== undefined || transaction.amount_due > 0) && (
                 <div className="payment-info">
-                  <div className="item">
-                    <span>Montant payé</span>
-                    <span>{(transaction.amount_paid || 0).toLocaleString()} Ar</span>
-                  </div>
+                  {transaction.is_debt_settlement && transaction.paid_now && (
+                    <div style={{ marginBottom: '10px', padding: '8px', border: '1px solid #000', borderRadius: '4px', backgroundColor: '#f9fafb' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px', color: '#111827' }}>
+                        Règlement de dette
+                      </div>
+                      <div className="item">
+                        <span>Montant versé:</span>
+                        <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{formatCurrency(transaction.paid_now)}</span>
+                      </div>
+                      <div style={{ fontSize: '10px', fontStyle: 'italic', marginTop: '2px', color: '#4b5563' }}>
+                        Régularisation pour la vente du {formatDate(transaction.created_date)}
+                      </div>
+                    </div>
+                  )}
+
+
                   {transaction.amount_due > 0 && (
                     <div className="amount-due">
                       <div className="item">
                         <span>Reste à payer</span>
-                        <span>{transaction.amount_due.toLocaleString()} Ar</span>
+                        <span>{formatCurrency(transaction.amount_due)}</span>
                       </div>
                     </div>
+                  )}
+
+                  {/* Amount Given and Change - Only for cash payments */}
+                  {String(transaction.payment_method).toLowerCase() === 'cash' && transaction.amount_given > 0 && (
+                    <>
+                      <div className="divider"></div>
+                      <div className="item">
+                        <span>Montant donné</span>
+                        <span style={{ fontWeight: 'bold' }}>{formatCurrency(transaction.amount_given)}</span>
+                      </div>
+                      <div className="item" style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                        <span>Rendu</span>
+                        <span>{formatCurrency(transaction.amount_given - transaction.total_amount)}</span>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
@@ -239,10 +319,9 @@ export default function ReceiptModal({ open, onClose, transaction }) {
                     {businessInfo.receipt_footer}
                   </div>
                 )}
-                <div>───────────────────</div>
                 <div style={{ marginTop: '5px' }}>Merci de votre visite !</div>
-                <div style={{ fontSize: '10px', marginTop: '5px', color: '#666' }}>
-                  Powered by Moonlight POS
+                <div style={{ fontSize: '9px', marginTop: '3px', color: '#666' }}>
+                  Powered by StandPOS
                 </div>
               </div>
             </div>

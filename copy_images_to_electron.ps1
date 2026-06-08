@@ -6,7 +6,7 @@ Write-Host ""
 
 # Chemins
 $devUploads = Join-Path $PSScriptRoot "server\uploads"
-$electronData = Join-Path $env:APPDATA "moonlight-bar"
+$electronData = Join-Path $env:APPDATA "StandPOS-bar"
 $electronUploads = Join-Path $electronData "uploads"
 
 Write-Host "Source (Dev): $devUploads" -ForegroundColor Yellow
@@ -16,7 +16,7 @@ Write-Host ""
 # Vérifier que le dossier source existe
 if (-not (Test-Path $devUploads)) {
     Write-Host "ERREUR: Le dossier source n'existe pas!" -ForegroundColor Red
-    Write-Host "Assurez-vous d'être dans le dossier Moonlight" -ForegroundColor Red
+    Write-Host "Assurez-vous d'être dans le dossier StandPOS" -ForegroundColor Red
     exit 1
 }
 

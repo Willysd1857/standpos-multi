@@ -6,16 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Printer, X, CheckCircle, Package } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const paymentLabels = {
     cash: 'Espèces',
     mvola: 'MVola',
     orange_money: 'Orange Money',
     airtel_money: 'Airtel Money',
-    visa: 'Visa/Carte'
+    visa: 'Virement / Carte'
+};
+
+const paymentTypeLabels = {
+    cash: 'COMPTANT',
+    partial: 'PARTIEL',
+    credit: 'À CRÉDIT'
 };
 
 export default function GroupedPurchaseReceipt({ open, onClose, purchaseGroup }) {
+    const { formatCurrency } = useCurrency();
     const { data: settings } = useQuery({
         queryKey: ['settings'],
         queryFn: () => base44.entities.Settings.get()
@@ -28,28 +36,57 @@ export default function GroupedPurchaseReceipt({ open, onClose, purchaseGroup })
         const printWindow = window.open('', '', 'width=400,height=600');
         const receiptContent = document.getElementById('grouped-receipt-content');
 
+        // Fix relative image paths for the new window
+        let content = receiptContent.innerHTML;
+        const origin = window.location.origin;
+        content = content.replace(/src="\/uploads\//g, `src="${origin}/uploads/`);
+
         printWindow.document.write(`
       <html>
         <head>
           <title>Bon d'approvisionnement ${purchaseGroup?.reference}</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
           <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: 'Courier New', monospace; padding: 20px; font-size: 12px; line-height: 1.4; }
+            * { 
+              margin: 0; 
+              padding: 0; 
+              box-sizing: border-box; 
+              font-family: 'Courier Prime', 'Courier New', monospace !important;
+              font-weight: 700 !important;
+              text-transform: uppercase !important;
+            }
+            body { 
+              font-family: 'Courier Prime', 'Courier New', monospace !important;
+              padding: 10px;
+              font-size: 12px;
+              line-height: 1.3;
+              font-weight: 700;
+            }
             .receipt { max-width: 300px; margin: 0 auto; }
-            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #000; padding-bottom: 15px; }
-            .business-name { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
-            .info-line { font-size: 11px; margin: 2px 0; }
-            .section { margin: 15px 0; }
-            .section-title { font-weight: bold; margin-bottom: 8px; text-transform: uppercase; font-size: 11px; }
-            .item { display: flex; justify-content: space-between; margin: 5px 0; }
-            .product-item { margin: 10px 0; padding: 8px; background: #f9f9f9; border-radius: 4px; }
-            .divider { border-top: 1px dashed #666; margin: 10px 0; }
-            .total { font-size: 14px; font-weight: bold; margin-top: 10px; padding-top: 10px; border-top: 2px solid #000; }
-            .footer { text-align: center; margin-top: 20px; padding-top: 15px; border-top: 2px dashed #000; font-size: 11px; }
-            @media print { body { padding: 0; } button { display: none; } }
+            .header { display: flex; justify-content: space-between; align-items: center; text-align: left; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 8px; gap: 15px; }
+            .header-info { flex: 1; }
+            .logo { width: 80px; height: 60px; object-fit: contain; object-position: right center; }
+            .business-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+            .info-line { font-size: 10px; margin: 1px 0; }
+            .section { margin: 8px 0; }
+            .section-title { font-weight: 700; margin-bottom: 5px; text-transform: uppercase; font-size: 10px; }
+            .item { display: flex; justify-content: space-between; margin: 3px 0; }
+            .divider { border-top: 1px dashed #666; margin: 5px 0; }
+            .total { font-size: 14px; font-weight: 700; margin-top: 5px; padding-top: 5px; border-top: 2px solid #000; }
+            .footer { text-align: center; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #000; font-size: 10px; }
+            @media print {
+              body { padding: 0; }
+              button { display: none; }
+            }
           </style>
         </head>
-        <body>${receiptContent.innerHTML}</body>
+        <body>
+          <div class="receipt">
+            ${content}
+          </div>
+        </body>
       </html>
     `);
 
@@ -57,7 +94,7 @@ export default function GroupedPurchaseReceipt({ open, onClose, purchaseGroup })
         setTimeout(() => {
             printWindow.print();
             printWindow.close();
-        }, 250);
+        }, 500);
     };
 
     if (!purchaseGroup) return null;
@@ -83,22 +120,13 @@ export default function GroupedPurchaseReceipt({ open, onClose, purchaseGroup })
                     {/* Receipt preview */}
                     <div className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200 max-h-[400px] overflow-y-auto">
                         <div id="grouped-receipt-content" className="receipt">
-                            {/* Header */}
-                            <div className="header">
-                                <div className="business-name">{businessInfo.business_name || 'Moonlight Snack-Bar'}</div>
-                                <div className="info-line">Antsirabe • Tél: 0345678901</div>
-                                <div className="info-line">NIF: 123456789 • STAT: 111023456789</div>
-                            </div>
-
                             {/* Title */}
                             <div className="section" style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '5px' }}>
+                                <div style={{ fontSize: '13px', fontWeight: 'bold' }}>
                                     BON D'APPROVISIONNEMENT GROUPÉ
                                 </div>
-                                <div className="info-line">N° {purchaseGroup.reference}</div>
+                                <div className="info-line" style={{ fontWeight: 'bold' }}>N° {purchaseGroup.reference?.toUpperCase()}</div>
                             </div>
-
-                            <div className="divider"></div>
 
                             {/* Info */}
                             <div className="section">
@@ -113,39 +141,76 @@ export default function GroupedPurchaseReceipt({ open, onClose, purchaseGroup })
                                     </div>
                                 )}
                                 <div className="item">
+                                    <span>Mode:</span>
+                                    <span>{paymentTypeLabels[purchaseGroup.payment_type] || 'COMPTANT'}</span>
+                                </div>
+                                <div className="item">
                                     <span>Paiement:</span>
                                     <span>{paymentLabels[purchaseGroup.payment_method] || purchaseGroup.payment_method}</span>
                                 </div>
+                                {(Number(purchaseGroup.paid_amount) || 0) > 0 && (
+                                    <div className="item">
+                                        <span>Versé:</span>
+                                        <span>{formatCurrency(purchaseGroup.paid_amount)}</span>
+                                    </div>
+                                )}
+                                {(Number(purchaseGroup.debt_amount) || 0) > 0 && (
+                                    <div className="item" style={{ color: '#b91c1c' }}>
+                                        <span>Reste à payer:</span>
+                                        <span style={{ fontWeight: 'bold' }}>{formatCurrency(purchaseGroup.debt_amount)}</span>
+                                    </div>
+                                )}
+                                {purchaseGroup.due_date && (Number(purchaseGroup.debt_amount) || 0) > 0 && (
+                                    <div className="item" style={{ color: '#b91c1c' }}>
+                                        <span>Échéance:</span>
+                                        <span>{formatDate(purchaseGroup.due_date)}</span>
+                                    </div>
+                                )}
                             </div>
-
-                            <div className="divider"></div>
 
                             {/* Products */}
                             <div className="section">
                                 <div className="section-title">Produits ({purchaseGroup.items?.length || 0})</div>
                                 {purchaseGroup.items?.map((item, index) => (
-                                    <div key={index} className="product-item">
+                                    <div key={index} style={{ marginBottom: '8px' }}>
                                         <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>
-                                            <Package style={{ width: '10px', height: '10px', display: 'inline', marginRight: '5px' }} />
                                             {item.product_name}
                                         </div>
-                                        <div className="item" style={{ fontSize: '11px' }}>
-                                            <span>{item.quantity} x {Number(item.unit_price).toLocaleString()} Ar</span>
-                                            <span style={{ fontWeight: 'bold' }}>{Number(item.total).toLocaleString()} Ar</span>
+                                        <div className="item" style={{ fontSize: '11px', paddingLeft: '10px' }}>
+                                            <span>{item.quantity} {item.unit || ''} x {formatCurrency(item.unit_price)}</span>
+                                            <span>{formatCurrency(item.total)}</span>
                                         </div>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="divider"></div>
-
                             {/* Total */}
                             <div className="total">
                                 <div className="item" style={{ fontSize: '16px' }}>
-                                    <span>MONTANT TOTAL</span>
-                                    <span>{Number(purchaseGroup.total_amount).toLocaleString()} Ar</span>
+                                    <span>TOTAL</span>
+                                    <span>{formatCurrency(purchaseGroup.total_amount)}</span>
                                 </div>
                             </div>
+
+                            {/* Emballages rendus au fournisseur */}
+                            {((Number(purchaseGroup.returned_bottles) || 0) > 0 || (Number(purchaseGroup.returned_crates) || 0) > 0) && (
+                                <div className="section">
+                                    <div className="divider"></div>
+                                    <div className="section-title">Emballages rendus au fournisseur</div>
+                                    {(Number(purchaseGroup.returned_bottles) || 0) > 0 && (
+                                        <div className="item">
+                                            <span>Bouteilles:</span>
+                                            <span>{purchaseGroup.returned_bottles}</span>
+                                        </div>
+                                    )}
+                                    {(Number(purchaseGroup.returned_crates) || 0) > 0 && (
+                                        <div className="item">
+                                            <span>Cageots:</span>
+                                            <span>{purchaseGroup.returned_crates}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Notes */}
                             {purchaseGroup.notes && (
@@ -157,9 +222,10 @@ export default function GroupedPurchaseReceipt({ open, onClose, purchaseGroup })
 
                             {/* Footer */}
                             <div className="footer">
-                                <div>───────────────────</div>
-                                <div style={{ marginTop: '5px' }}>Merci pour votre approvisionnement</div>
-                                <div style={{ fontSize: '10px', marginTop: '5px', color: '#666' }}>Powered by Moonlight POS</div>
+                                <div style={{ marginTop: '5px' }}>Document d'approvisionnement</div>
+                                <div style={{ fontSize: '9px', marginTop: '3px', color: '#666' }}>
+                                    Powered by StandPOS
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -172,7 +238,7 @@ export default function GroupedPurchaseReceipt({ open, onClose, purchaseGroup })
                         </Button>
                         <Button
                             onClick={handlePrint}
-                            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl shadow-lg shadow-green-500/30"
+                            className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl shadow-lg shadow-blue-500/30"
                         >
                             <Printer className="w-4 h-4 mr-2" />
                             Imprimer

@@ -1,34 +1,43 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Package } from 'lucide-react';
+import { Plus, Package, ChefHat } from 'lucide-react';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function ProductGrid({ products, onAddToCart }) {
+  const { formatCurrency } = useCurrency();
+
   const getStockBadgeColor = (stock, minStock = 5) => {
     if (stock <= 0) return 'bg-red-500 text-white';
     if (stock <= minStock) return 'bg-orange-500 text-white';
-    return 'bg-green-500 text-white';
+    return 'bg-emerald-500 text-white';
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
       {products.map((product) => (
-        <button
+        <div
           key={product.id}
-          onClick={() => onAddToCart(product)}
-          disabled={product.stock <= 0}
-          className={`relative p-4 rounded-2xl text-left transition-all duration-200 group ${product.stock <= 0
-            ? 'bg-gray-100 opacity-60 cursor-not-allowed'
-            : 'bg-white hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.98]'
+          onClick={() => onAddToCart(product, false)}
+          className={`relative flex flex-col rounded-2xl text-left transition-all duration-300 group cursor-pointer p-4 ${(!!product.track_stock && product.stock <= 0)
+            ? 'bg-gray-50 opacity-60 cursor-not-allowed grayscale'
+            : 'bg-white border border-gray-100/50 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 active:scale-[0.98]'
             }`}
         >
-          {/* Stock badge - Always visible */}
-          <div className={`absolute top-2 right-2 ${getStockBadgeColor(product.stock, product.min_stock)} px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg z-10`}>
-            <Package className="w-3 h-3" />
-            {product.stock || 0}
-          </div>
+          {/* Stock badge — recipe products show estimated portions */}
+          {!!product.track_stock && product.product_type === 'recipe' ? (
+            <div className={`absolute top-2 right-2 ${getStockBadgeColor(product.stock, product.min_stock)} px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-sm z-20 border border-white/20`}>
+              <ChefHat className="w-2.5 h-2.5" />
+              ~{product.stock ?? 0}
+            </div>
+          ) : !!product.track_stock ? (
+            <div className={`absolute top-2 right-2 ${getStockBadgeColor(product.stock, product.min_stock)} px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 shadow-sm z-20 border border-white/20`}>
+              <Package className="w-2.5 h-2.5" />
+              {product.stock || 0} {product.unit}
+            </div>
+          ) : null}
 
           {/* Product image or placeholder */}
-          <div className="w-full aspect-square rounded-xl bg-gradient-to-br from-blue-100 to-indigo-50 mb-3 flex items-center justify-center overflow-hidden relative">
+          <div className="w-full aspect-square rounded-xl bg-[#F0F4FF] flex items-center justify-center overflow-hidden relative shadow-inner mb-3">
             {product.image_url ? (
               <img
                 src={product.image_url}
@@ -36,36 +45,41 @@ export default function ProductGrid({ products, onAddToCart }) {
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
               />
             ) : (
-              <span className="text-4xl font-bold text-blue-600 opacity-40">
+              <span className="text-4xl font-bold text-blue-200">
                 {product.name.charAt(0)}
               </span>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
 
-          <h3 className="font-semibold text-gray-800 text-sm truncate">
-            {product.name}
-          </h3>
+          <div className="flex-1 flex flex-col justify-between">
+            <h3 className="font-bold text-gray-700 text-sm line-clamp-1 leading-snug group-hover:text-blue-600 transition-colors">
+              {product.name}
+            </h3>
 
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-lg font-bold text-blue-600">
-              {product.price?.toLocaleString()} Ar
-            </span>
+<div className="flex items-center justify-between mt-1">
+              <span className="text-[15px] font-black text-blue-600">
+                {formatCurrency(product.price)}
+              </span>
 
-            {product.stock > 0 && (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg">
-                <Plus className="w-5 h-5" />
-              </div>
-            )}
+              {(!product.track_stock || product.stock > 0) && (
+                <div
+                  className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all shadow-lg hover:bg-blue-700 active:scale-90"
+                >
+                  <Plus className="w-4 h-4" />
+                </div>
+              )}
+            </div>
           </div>
 
-          {product.stock <= 0 && (
+          {!!product.track_stock && product.stock <= 0 && (
             <div className="absolute inset-0 bg-white/80 rounded-2xl flex items-center justify-center">
               <span className="text-gray-500 font-medium">Rupture</span>
             </div>
           )}
-        </button>
-      ))}
-    </div>
+        </div>
+      ))
+      }
+    </div >
   );
 }

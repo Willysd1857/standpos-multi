@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Package } from 'lucide-react';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function PurchaseModal({ open, onClose, product, onSubmit, isLoading }) {
+    const { getCurrencySymbol, formatCurrency, convertToAriary } = useCurrency();
     const [formData, setFormData] = useState({
         quantity: '',
         unit_price: '',
@@ -40,7 +42,7 @@ export default function PurchaseModal({ open, onClose, product, onSubmit, isLoad
             product_id: product.id,
             product_name: product.name,
             quantity: Number(formData.quantity),
-            unit_price: Number(formData.unit_price),
+            unit_price: convertToAriary(Number(formData.unit_price)),
             supplier_name: formData.supplier_name,
             payment_method: formData.payment_method,
             date: formData.date,
@@ -95,7 +97,7 @@ export default function PurchaseModal({ open, onClose, product, onSubmit, isLoad
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="unit_price">Prix Unitaire (Ar) *</Label>
+                            <Label htmlFor="unit_price">Prix Unitaire ({getCurrencySymbol()}) *</Label>
                             <Input
                                 id="unit_price"
                                 type="number"
@@ -114,7 +116,7 @@ export default function PurchaseModal({ open, onClose, product, onSubmit, isLoad
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                             <div className="flex justify-between items-center">
                                 <span className="text-sm font-medium text-gray-700">Montant Total</span>
-                                <span className="text-2xl font-bold text-green-600">{totalAmount.toLocaleString()} Ar</span>
+                                <span className="text-2xl font-bold text-green-600">{formatCurrency(totalAmount)}</span>
                             </div>
                             <div className="text-xs text-gray-500 mt-1">
                                 Nouveau stock : {product.stock + Number(formData.quantity || 0)}

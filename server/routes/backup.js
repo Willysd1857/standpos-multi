@@ -5,71 +5,88 @@ const fs = require('fs');
 const archiver = require('archiver');
 const AdmZip = require('adm-zip');
 const multer = require('multer');
-const { db } = require('../database');
+const supabase = require('../services/supabaseClient');
 
-const upload = multer({ dest: 'uploads/temp/' });
+// Create temp directory for uploads if it doesn't exist
+const tempDir = process.env.UPLOAD_PATH
+    ? path.join(process.env.UPLOAD_PATH, 'temp')
+    : path.join(__dirname, '../uploads/temp');
+
+if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+}
+
+const upload = multer({ dest: tempDir });
+
+const tablesList = [
+    'categories',
+    'products',
+    'transactions',
+    'customers',
+    'stock_movements',
+    'settings',
+    'expenses',
+    'ingredients',
+    'ingredient_movements',
+    'ingredient_usage_groups',
+    'purchase_groups',
+    'purchase_group_items',
+    'purchases',
+    'payments',
+    'recipes',
+    'users',
+    'audit_logs'
+];
 
 // Create Backup (ZIP)
-router.get('/create', (req, res) => {
-    // Determine paths
-    const dbPath = process.env.DB_PATH || path.join(__dirname, '../moonlight.db');
-    const uploadsPath = process.env.UPLOAD_PATH || path.join(__dirname, '../uploads');
+router.get('/create', async (req, res) => {
+    try {
+        const uploadsPath = process.env.UPLOAD_PATH || path.join(__dirname, '../uploads');
+        console.log('=== CRÉATION DE SAUVEGARDE CLOUD ===');
+        console.log('Chemin Uploads:', uploadsPath);
 
-    console.log('=== CRÉATION DE SAUVEGARDE ===');
-    console.log('Chemin DB:', dbPath);
-    console.log('Chemin Uploads:', uploadsPath);
-    console.log('DB existe:', fs.existsSync(dbPath));
-    console.log('Uploads existe:', fs.existsSync(uploadsPath));
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const zipName = `standpos_cloud_backup_${timestamp}.zip`;
 
-    // Count files in uploads
-    if (fs.existsSync(uploadsPath)) {
-        const files = fs.readdirSync(uploadsPath);
-        console.log(`Nombre de fichiers dans uploads: ${files.length}`);
-        console.log('Fichiers:', files.slice(0, 5).join(', ') + (files.length > 5 ? '...' : ''));
+        // Set response headers for download
+        res.attachment(zipName);
+
+        const archive = archiver('zip', {
+            zlib: { level: 9 }
+        });
+
+        archive.on('error', (err) => {
+            console.error('Erreur lors de la création de l\'archive:', err);
+            res.status(500).json({ error: 'Erreur lors de la création de la sauvegarde' });
+        });
+
+        archive.pipe(res);
+
+        // Fetch and append all database tables as JSON
+        for (const table of tablesList) {
+            console.log(`Exportation de la table ${table}...`);
+            const { data, error } = await supabase.from(table).select('*');
+            if (error) {
+                console.warn(`Impossible d'exporter la table ${table}:`, error.message);
+                continue;
+            }
+            archive.append(JSON.stringify(data || [], null, 2), { name: `db/${table}.json` });
+        }
+
+        // Append uploads directory
+        if (fs.existsSync(uploadsPath)) {
+            console.log('Ajout du dossier uploads au ZIP...');
+            archive.directory(uploadsPath, 'uploads');
+        } else {
+            console.warn('ATTENTION: Dossier uploads non trouvé!');
+        }
+
+        archive.finalize();
+        console.log('Finalisation de l\'archive...');
+    } catch (error) {
+        console.error('❌ Erreur globale lors du backup:', error);
+        res.status(500).json({ error: error.message });
     }
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const zipName = `moonlight_backup_${timestamp}.zip`;
-
-    // Set response headers for download
-    res.attachment(zipName);
-
-    const archive = archiver('zip', {
-        zlib: { level: 9 } // Sets the compression level.
-    });
-
-    // Error handling for archive
-    archive.on('error', (err) => {
-        console.error('Erreur lors de la création de l\'archive:', err);
-        res.status(500).json({ error: 'Erreur lors de la création de la sauvegarde' });
-    });
-
-    // Log progress
-    archive.on('progress', (progress) => {
-        console.log(`Archive progress: ${progress.entries.processed}/${progress.entries.total} fichiers`);
-    });
-
-    // Pipe archive data to the response
-    archive.pipe(res);
-
-    // Append database file
-    if (fs.existsSync(dbPath)) {
-        console.log('Ajout de la base de données au ZIP...');
-        archive.file(dbPath, { name: 'moonlight.db' });
-    } else {
-        console.warn('ATTENTION: Base de données non trouvée!');
-    }
-
-    // Append uploads directory
-    if (fs.existsSync(uploadsPath)) {
-        console.log('Ajout du dossier uploads au ZIP...');
-        archive.directory(uploadsPath, 'uploads');
-    } else {
-        console.warn('ATTENTION: Dossier uploads non trouvé!');
-    }
-
-    archive.finalize();
-    console.log('Finalisation de l\'archive...');
 });
 
 // Restore Backup (ZIP)
@@ -79,12 +96,10 @@ router.post('/restore', upload.single('file'), async (req, res) => {
     }
 
     const zipPath = req.file.path;
-    const targetDbPath = process.env.DB_PATH || path.join(__dirname, '../moonlight.db');
     const targetUploadsPath = process.env.UPLOAD_PATH || path.join(__dirname, '../uploads');
 
-    console.log('=== RESTAURATION DE SAUVEGARDE ===');
+    console.log('=== RESTAURATION DE SAUVEGARDE CLOUD ===');
     console.log('Fichier ZIP:', zipPath);
-    console.log('Cible DB:', targetDbPath);
     console.log('Cible Uploads:', targetUploadsPath);
 
     try {
@@ -93,47 +108,54 @@ router.post('/restore', upload.single('file'), async (req, res) => {
 
         console.log(`Nombre total d'entrées dans le ZIP: ${zipEntries.length}`);
 
-        // Log all entries for debugging
-        zipEntries.forEach(entry => {
-            console.log(`  - ${entry.entryName} (${entry.isDirectory ? 'DIR' : 'FILE'})`);
-        });
+        // Check if this is a new style cloud backup (has db/ folder with JSONs)
+        const hasJsonDb = zipEntries.some(entry => entry.entryName.startsWith('db/') && entry.entryName.endsWith('.json'));
 
-        // 1. Validate structure (check for moonlight.db)
-        const hasDb = zipEntries.some(entry => entry.entryName === 'moonlight.db');
-        const uploadEntries = zipEntries.filter(entry => entry.entryName.startsWith('uploads/'));
-
-        console.log(`Base de données trouvée: ${hasDb}`);
-        console.log(`Fichiers uploads trouvés: ${uploadEntries.length}`);
-
-        if (!hasDb) {
+        if (!hasJsonDb) {
             fs.unlinkSync(zipPath);
-            return res.status(400).json({ error: 'Invalid backup file: moonlight.db not found' });
+            return res.status(400).json({ error: 'Sauvegarde invalide. Ce fichier ne contient pas les fichiers de données cloud (.json)' });
         }
 
-        // 2. Close DB Connection to allow overwrite (Better-sqlite3 synchronous close)
-        try {
-            if (db.open) {
-                db.close();
-                console.log('Database connection closed for restore.');
+        // 1. Restore Database Tables on Supabase
+        for (const table of tablesList) {
+            const entryName = `db/${table}.json`;
+            const entry = zipEntries.find(e => e.entryName === entryName);
+
+            if (entry) {
+                console.log(`Restauration de la table ${table}...`);
+                const fileContent = zip.readAsText(entry);
+                const rows = JSON.parse(fileContent);
+
+                if (Array.isArray(rows)) {
+                    // Delete existing entries
+                    const { error: delErr } = await supabase.from(table).delete().neq('id', 'null');
+                    if (delErr) {
+                        console.warn(`Erreur lors de la suppression de la table ${table}:`, delErr.message);
+                    }
+
+                    // Insert rows in batches of 100
+                    if (rows.length > 0) {
+                        const batchSize = 100;
+                        for (let i = 0; i < rows.length; i += batchSize) {
+                            const batch = rows.slice(i, i + batchSize);
+                            const { error: insErr } = await supabase.from(table).insert(batch);
+                            if (insErr) {
+                                console.error(`Erreur lors de l'insertion dans ${table}:`, insErr.message);
+                                throw insErr;
+                            }
+                        }
+                    }
+                    console.log(`✓ Table ${table} restaurée (${rows.length} lignes).`);
+                }
             }
-        } catch (e) {
-            console.error('Error closing DB:', e);
         }
 
-        // 3. Extract DB
-        console.log('Extraction de la base de données...');
-        zip.extractEntryTo("moonlight.db", path.dirname(targetDbPath), false, true); // overwrite
-        console.log('Base de données extraite avec succès.');
-
-
-        // 4. Clean and Extract Uploads
-        // Ensure uploads directory exists
+        // 2. Clean and Extract Uploads
         if (!fs.existsSync(targetUploadsPath)) {
-            console.log('Création du dossier uploads...');
             fs.mkdirSync(targetUploadsPath, { recursive: true });
         }
 
-        // Clean the uploads directory to avoid old files
+        // Clean the uploads directory
         if (fs.existsSync(targetUploadsPath)) {
             console.log('Nettoyage du dossier uploads existant...');
             const existingFiles = fs.readdirSync(targetUploadsPath);
@@ -147,70 +169,42 @@ router.post('/restore', upload.single('file'), async (req, res) => {
                     console.warn(`Impossible de supprimer ${file}:`, err.message);
                 }
             });
-            console.log(`${existingFiles.length} fichiers supprimés.`);
         }
 
-        // Extract uploads files one by one for better control
-        console.log('Extraction des fichiers uploads...');
+        // Extract uploads
+        const uploadEntries = zipEntries.filter(entry => entry.entryName.startsWith('uploads/'));
         let extractedCount = 0;
 
         uploadEntries.forEach(entry => {
             if (!entry.isDirectory) {
                 try {
-                    // Extract to the uploads directory directly
-                    // entry.entryName is like "uploads/filename.png"
-                    // We want to extract to targetUploadsPath/filename.png
                     const fileName = path.basename(entry.entryName);
                     const targetPath = path.join(targetUploadsPath, fileName);
-
-                    // Extract the file
                     const fileContent = zip.readFile(entry);
                     fs.writeFileSync(targetPath, fileContent);
                     extractedCount++;
-
-                    if (extractedCount <= 3) {
-                        console.log(`  ✓ ${fileName} (${(entry.header.size / 1024).toFixed(2)} KB)`);
-                    }
                 } catch (err) {
-                    console.error(`  ✗ Erreur extraction ${entry.entryName}:`, err.message);
+                    console.error(`  Erreur extraction ${entry.entryName}:`, err.message);
                 }
             }
         });
 
         console.log(`${extractedCount} fichiers extraits dans uploads.`);
 
-        // Verify extraction
-        if (fs.existsSync(targetUploadsPath)) {
-            const extractedFiles = fs.readdirSync(targetUploadsPath);
-            console.log(`Vérification: ${extractedFiles.length} fichiers présents dans ${targetUploadsPath}`);
-            if (extractedFiles.length > 0) {
-                console.log('Exemples:', extractedFiles.slice(0, 3).join(', ') + (extractedFiles.length > 3 ? '...' : ''));
-            }
-        } else {
-            console.error('ERREUR: Le dossier uploads n\'existe pas après extraction!');
-        }
-
-
-        res.json({ success: true, message: 'Restore successful. Please restart the application.' });
+        res.json({ success: true, message: 'Restauration réussie avec succès ! Les données cloud et les images locales ont été synchronisées.' });
 
     } catch (error) {
-        console.error('Restore error:', error);
-        res.status(500).json({ error: 'Failed to restore backup' });
+        console.error('❌ Erreur de restauration:', error);
+        res.status(500).json({ error: `Échec de la restauration de la sauvegarde: ${error.message}` });
     } finally {
         if (fs.existsSync(zipPath)) {
             fs.unlinkSync(zipPath);
         }
-
-        // Since we closed the DB, the server is now in a zombie state regarding DB ops.
-        // It's best to exit the process so the process manager (or dev mode) restarts it, 
-        // OR rely on the user restarting the Electron app.
-        // In dev mode "npm run dev", killing node process stops it.
-        // In production electron, we might want to trigger an app relaunch.
-
-        // Let's exit after a short delay to allow response to send
+        
+        // Restart process to ensure all modules refresh
         setTimeout(() => {
             console.log('Restarting server after restore...');
-            process.exit(0); // This will kill the server, expecting Electron or PM2 to restart or user to reopen.
+            process.exit(0);
         }, 1000);
     }
 });

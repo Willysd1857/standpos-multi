@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Package, AlertCircle } from 'lucide-react';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 export default function ProductCard({ product, onClick }) {
+    const { formatCurrency } = useCurrency();
     const stockPercentage = product.min_stock > 0
         ? (product.stock / product.min_stock) * 100
         : 100;
@@ -46,50 +48,25 @@ export default function ProductCard({ product, onClick }) {
                 <div className="absolute top-2 right-2">
                     <div className={`${status.color} text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1`}>
                         {product.stock === 0 && <AlertCircle className="w-3 h-3" />}
-                        {product.stock}
+                        {product.stock} {product.unit}
                     </div>
                 </div>
             </div>
 
             {/* Info */}
-            <div className="p-4">
-                <h3 className="font-bold text-gray-800 mb-1 line-clamp-2 min-h-[2.5rem]">
+            <div className="p-3">
+                <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[1.5rem] text-sm">
                     {product.name}
                 </h3>
 
-                <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-500">Stock actuel</span>
-                    <span className={`text-sm font-semibold ${status.textColor}`}>
-                        {product.stock} / {product.min_stock}
-                    </span>
-                </div>
-
-                <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-500">Prix vente</span>
-                    <span className="text-lg font-bold text-green-600">
-                        {product.price?.toLocaleString()} Ar
-                    </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Prix d'achat</span>
-                    <span className="text-sm font-semibold text-blue-600">
-                        {product.cost_price?.toLocaleString() || '—'} Ar
-                    </span>
-                </div>
-
                 {/* Stock status bar */}
-                <div className="mt-3 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div className="mt-2 h-1 bg-gray-200 rounded-full overflow-hidden">
                     <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${Math.min(stockPercentage, 100)}%` }}
                         className={`h-full ${status.color}`}
                     />
                 </div>
-
-                <p className={`text-xs font-medium mt-1 ${status.textColor}`}>
-                    {status.label}
-                </p>
             </div>
         </motion.div>
     );

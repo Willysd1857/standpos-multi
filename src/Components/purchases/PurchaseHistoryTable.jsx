@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, CheckCircle, Clock, XCircle, Eye, Search } from 'lucide-react';
 import PurchaseDetailModal from './PurchaseDetailModal';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const statusConfig = {
     validated: { label: 'Validé', icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100' },
@@ -14,6 +15,7 @@ const statusConfig = {
 
 export default function PurchaseHistoryTable({ purchases, onDelete, isLoading }) {
     const { formatDate } = useAppDate();
+    const { formatCurrency } = useCurrency();
     const [selectedPurchase, setSelectedPurchase] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -76,7 +78,7 @@ export default function PurchaseHistoryTable({ purchases, onDelete, isLoading })
 
             {/* Table */}
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
-                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <div className="overflow-x-auto max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-gray-50/50">
@@ -115,14 +117,14 @@ export default function PurchaseHistoryTable({ purchases, onDelete, isLoading })
                                         </TableCell>
                                         <TableCell className="text-gray-600">
                                             <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 font-semibold text-sm">
-                                                {purchase.quantity}
+                                                {purchase.quantity} {purchase.unit || ''}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-gray-600">
-                                            {purchase.unit_price === '-' ? '-' : `${Number(purchase.unit_price).toLocaleString()} Ar`}
+                                            {purchase.unit_price === '-' ? '-' : formatCurrency(purchase.unit_price)}
                                         </TableCell>
                                         <TableCell className="font-bold text-green-600">
-                                            {Number(purchase.total_amount).toLocaleString()} Ar
+                                            {formatCurrency(purchase.total_amount)}
                                         </TableCell>
                                         <TableCell className="text-gray-600">
                                             {purchase.supplier_name || '-'}

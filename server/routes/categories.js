@@ -1,35 +1,51 @@
 const express = require('express');
 const router = express.Router();
-const { db } = require('../database');
-const { v4: uuidv4 } = require('uuid');
+const supabase = require('../services/supabaseClient');
+const { v4: uuid } = require('uuid');
+const { createAuditLog, getUserFromRequest } = require('../middleware/auditLogger');
 
 // Get all categories
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const categories = db.prepare('SELECT * FROM categories ORDER BY `order`, name').all();
-        res.json(categories);
+        const { data: categories, error } = await supabase
+            .from('categories')
+            .select('*')
+            .order('order', { ascending: true })
+            .order('name', { ascending: true });
+
+        if (error) throw error;
+        res.json(categories || []);
     } catch (error) {
+        console.error('❌ Erreur GET /categories:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Get category by ID
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
-        const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(req.params.id);
+        const { data: category, error } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('id', req.params.id)
+            .maybeSingle();
+
+        if (error) throw error;
         if (!category) {
             return res.status(404).json({ error: 'Category not found' });
         }
         res.json(category);
     } catch (error) {
+        console.error(`❌ Erreur GET /categories/${req.params.id}:`, error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Create category
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     try {
-        const id = uuidv4();
+        console.log('[Post] Tentative de création de catégorie:', JSON.stringify(req.body));
+
         const {
             name,
             icon = 'default',
@@ -37,64 +53,146 @@ router.post('/', (req, res) => {
             order = 0
         } = req.body;
 
-        const stmt = db.prepare(`
-      INSERT INTO categories (id, name, icon, color, \`order\`)
-      VALUES (?, ?, ?, ?, ?)
-    `);
+        if (!name) {
+            return res.status(400).json({ error: 'Le nom de la catégorie est requis' });
+        }
 
-        stmt.run(id, name, icon, color, order);
+        const id = uuid();
+        const finalOrder = parseInt(order, 10) || 0;
 
-        const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
+        console.log(`[Post] Données finales: id=${id}, name=${name}, icon=${icon}, color=${color}, order=${finalOrder}`);
+
+        const { data: category, error } = await supabase
+            .from('categories')
+            .insert({
+                id,
+                name: name.trim(),
+                icon: String(icon),
+                color: String(color),
+                order: finalOrder
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        console.log('[Post] Insertion réussie');
+
+        // Audit log
+        const user = getUserFromRequest(req);
+        createAuditLog(
+            user.id,
+            user.username,
+            'CREATE_CATEGORY',
+            'category',
+            id,
+            { name: category.name, color: category.color }
+        );
+
         res.status(201).json(category);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('❌ Erreur POST /categories:', error);
+        res.status(500).json({
+            error: error.message
+        });
     }
 });
 
 // Update category
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
+        const updates = { ...req.body };
+        console.log(`[Put] Tentative de mise à jour de la catégorie ${id}:`, JSON.stringify(updates));
 
-        const fields = Object.keys(updates)
-            .filter(key => key !== 'id' && key !== 'created_at')
-            .map(key => key === 'order' ? '`order` = ?' : `${key} = ?`)
-            .join(', ');
+        // Sanitize updates
+        if (updates.id) delete updates.id;
+        if (updates.created_at) delete updates.created_at;
+        if (updates.updated_at) delete updates.updated_at;
 
-        const values = Object.keys(updates)
-            .filter(key => key !== 'id' && key !== 'created_at')
-            .map(key => updates[key]);
+        if (updates.order !== undefined) {
+            updates.order = parseInt(updates.order, 10) || 0;
+        }
+        if (updates.hidden_in_pos !== undefined) {
+            updates.hidden_in_pos = !!updates.hidden_in_pos;
+        }
 
-        values.push(id);
+        // Set updated_at to now
+        updates.updated_at = new Date().toISOString();
 
-        const stmt = db.prepare(`
-      UPDATE categories
-      SET ${fields}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
+        const { data: category, error } = await supabase
+            .from('categories')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
 
-        stmt.run(...values);
+        if (error) throw error;
+        console.log('[Put] Mise à jour réussie');
 
-        const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(id);
+        // Audit log
+        const user = getUserFromRequest(req);
+        createAuditLog(
+            user.id,
+            user.username,
+            'UPDATE_CATEGORY',
+            'category',
+            id,
+            {
+                name: category.name,
+                updated_fields: Object.keys(updates)
+            }
+        );
+
         res.json(category);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error(`❌ Erreur PUT /categories/${req.params.id}:`, error);
+        res.status(500).json({
+            error: error.message
+        });
     }
 });
 
 // Delete category
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
     try {
-        const stmt = db.prepare('DELETE FROM categories WHERE id = ?');
-        const result = stmt.run(req.params.id);
+        const { id } = req.params;
+        console.log(`[Delete] Tentative de suppression de la catégorie: ${id}`);
 
-        if (result.changes === 0) {
+        // Get category info before deletion
+        const { data: category, error: getError } = await supabase
+            .from('categories')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (getError) throw getError;
+        if (!category) {
             return res.status(404).json({ error: 'Category not found' });
         }
 
-        res.json({ message: 'Category deleted successfully' });
+        const { error: deleteError } = await supabase
+            .from('categories')
+            .delete()
+            .eq('id', id);
+
+        if (deleteError) throw deleteError;
+
+        // Audit log
+        const user = getUserFromRequest(req);
+        createAuditLog(
+            user.id,
+            user.username,
+            'DELETE_CATEGORY',
+            'category',
+            id,
+            { name: category.name }
+        );
+
+        console.log(`[Delete] Catégorie ${id} supprimée avec succès`);
+        res.json({ message: 'Category deleted successfully', id });
     } catch (error) {
+        console.error('❌ Erreur DELETE /categories/:id:', error);
         res.status(500).json({ error: error.message });
     }
 });

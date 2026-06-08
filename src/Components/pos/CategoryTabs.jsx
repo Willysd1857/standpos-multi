@@ -1,14 +1,19 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Coffee, Pizza, Sandwich, GlassWater, IceCream, UtensilsCrossed } from 'lucide-react';
+import { GlassWater, Utensils, ShoppingBasket, Store, Tag, Shirt, Pill, Wrench, Bike, Smartphone, LayoutGrid } from 'lucide-react';
 
 const iconMap = {
-  coffee: Coffee,
-  pizza: Pizza,
-  sandwich: Sandwich,
+  default: LayoutGrid,
+  basket: ShoppingBasket,
+  store: Store,
+  tag: Tag,
+  shirt: Shirt,
+  pill: Pill,
+  wrench: Wrench,
+  bike: Bike,
+  phone: Smartphone,
+  utensils: Utensils,
   drink: GlassWater,
-  dessert: IceCream,
-  default: UtensilsCrossed
 };
 
 export default function CategoryTabs({ categories, activeCategory, onSelect }) {
@@ -18,12 +23,12 @@ export default function CategoryTabs({ categories, activeCategory, onSelect }) {
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={() => onSelect(null)}
-        className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all whitespace-nowrap ${activeCategory === null
-            ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-xl shadow-blue-500/40 scale-105'
-            : 'bg-white/90 text-gray-600 hover:bg-white hover:shadow-lg border border-gray-200'
+        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap border-2 ${activeCategory === null
+          ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20'
+          : 'bg-white border-gray-100 text-gray-600 hover:border-blue-100 hover:bg-blue-50/30'
           }`}
       >
-        <UtensilsCrossed className="w-4 h-4" />
+        <LayoutGrid className="w-3.5 h-3.5" />
         Tout
       </motion.button>
 
@@ -35,12 +40,12 @@ export default function CategoryTabs({ categories, activeCategory, onSelect }) {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onSelect(category.id)}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all whitespace-nowrap ${activeCategory === category.id
-                ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-xl shadow-blue-500/40 scale-105'
-                : 'bg-white/90 text-gray-600 hover:bg-white hover:shadow-lg border border-gray-200'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap border-2 ${activeCategory === category.id
+              ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20'
+              : 'bg-white border-gray-100 text-gray-600 hover:border-blue-100 hover:bg-blue-50/30'
               }`}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className="w-3.5 h-3.5" />
             {category.name}
           </motion.button>
         );
