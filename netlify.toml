@@ -3,10 +3,6 @@
 # ===================================================
 # The frontend is hosted on Netlify (static files).
 # All /api/* requests are proxied to the backend on Render.
-#
-# IMPORTANT: After deploying your backend on Render,
-# replace RENDER_BACKEND_URL below with your actual URL.
-# Example: https://standpos-api.onrender.com
 # ===================================================
 
 [build]
@@ -17,7 +13,7 @@
 # Status 200 = reverse proxy (invisible to the browser, no redirect)
 [[redirects]]
   from = "/api/*"
-  to = "https://VOTRE_URL_RENDER.onrender.com/api/:splat"
+  to = "https://onrender.com"
   status = 200
   force = true
 
