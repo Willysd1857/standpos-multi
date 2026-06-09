@@ -6,9 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Store, Save, Upload, X, Edit, ToggleLeft } from 'lucide-react';
+import { Store, Save, Upload, X, Edit } from 'lucide-react';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 export default function BusinessSettings() {
@@ -27,7 +26,6 @@ export default function BusinessSettings() {
     currency: 'MGA',
     exchange_rate_usd: '4500',
     exchange_rate_eur: '5000',
-    enable_tables: true,
     enable_ingredient_usage: true,
     packaging_due_days: 30
   });
@@ -64,7 +62,6 @@ export default function BusinessSettings() {
         currency: settings.currency || 'MGA',
         exchange_rate_usd: settings.exchange_rate_usd?.toString() || '4500',
         exchange_rate_eur: settings.exchange_rate_eur?.toString() || '5000',
-        enable_tables: settings.enable_tables !== undefined ? Boolean(settings.enable_tables) : true,
         enable_ingredient_usage: settings.enable_ingredient_usage !== undefined ? Boolean(settings.enable_ingredient_usage) : true,
         packaging_due_days: settings.packaging_due_days || 30
       });
@@ -91,7 +88,6 @@ export default function BusinessSettings() {
       const dataToSave = {
         ...formData,
         vip_charge: ariaryVipCharge,
-        enable_tables: formData.enable_tables ? 1 : 0,
         enable_ingredient_usage: formData.enable_ingredient_usage ? 1 : 0
       };
 
@@ -256,24 +252,6 @@ export default function BusinessSettings() {
                 />
               </div>
 
-              {/* VIP Charge */}
-              {formData.enable_tables && (
-                <div className="md:col-span-2">
-                  <Label className="text-sm font-semibold text-gray-700">
-                    Frais Table VIP ({getCurrencySymbol()})
-                    <span className="text-xs text-gray-500 ml-2">(Montant ajouté automatiquement)</span>
-                  </Label>
-                  <Input
-                    type="number"
-                    value={formData.vip_charge}
-                    onChange={(e) => setFormData({ ...formData, vip_charge: e.target.value })}
-                    placeholder="Ex: 5000"
-                    className="mt-2 rounded-xl border-gray-300 focus:border-orange-500 focus:ring-orange-500"
-                    disabled={!isEditMode}
-                  />
-                </div>
-              )}
-
               {/* Timezone */}
               <div className="md:col-span-2">
                 <Label className="text-sm font-semibold text-gray-700">
@@ -393,29 +371,6 @@ export default function BusinessSettings() {
                   className="mt-2 rounded-xl border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                   disabled={!isEditMode}
                 />
-              </div>
-            </div>
-
-            {/* Feature Toggles */}
-            <div className="md:col-span-2 pt-6 border-t border-gray-200">
-              <h3 className="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
-                <ToggleLeft className="w-4 h-4 text-gray-500" />
-                Fonctionnalités
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-4 rounded-xl bg-blue-50 border border-blue-100">
-                  <div>
-                    <p className="font-semibold text-gray-800 text-sm">Gestion des tables</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Activer la sélection de tables, numéros de tables et informations de table dans les commandes
-                    </p>
-                  </div>
-                  <Switch
-                    checked={formData.enable_tables}
-                    onCheckedChange={(checked) => setFormData({ ...formData, enable_tables: checked })}
-                    disabled={!isEditMode}
-                  />
-                </div>
               </div>
             </div>
 

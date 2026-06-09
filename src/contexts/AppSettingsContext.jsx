@@ -16,9 +16,7 @@ export const AppSettingsProvider = ({ children }) => {
     queryFn: () => base44.entities.Settings.get(),
   });
 
-  const enableTables = settings?.enable_tables !== undefined
-    ? Boolean(settings.enable_tables)
-    : true;
+  const enableTables = false;
 
   const enableIngredientUsage = settings?.enable_ingredient_usage !== undefined
     ? Boolean(settings.enable_ingredient_usage)

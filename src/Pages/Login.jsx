@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,16 +30,25 @@ const Login = () => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const res = await fetch('/api/users/public/list');
-                if (res.ok) {
-                    const data = await res.json();
-                    setUsersList(data);
-                    if (data.length > 0) {
-                        setUsername(data[0].username);
-                    }
+                const locations = await base44.entities.Location.list();
+                const locationUsers = (locations || [])
+                    .filter(loc => loc.is_active !== false && loc.users?.length > 0)
+                    .map(loc => ({
+                        username: loc.users[0].username,
+                        full_name: loc.name,
+                        location_type: loc.type
+                    }));
+                const allUsers = [
+                    { username: 'admin', full_name: 'Administrateur' },
+                    ...locationUsers
+                ];
+                setUsersList(allUsers);
+                if (allUsers.length > 0) {
+                    setUsername(allUsers[0].username);
                 }
             } catch (error) {
-                console.error("Failed to fetch users list", error);
+                console.error("Failed to fetch locations for login", error);
+                setUsersList([{ username: 'admin', full_name: 'Administrateur' }]);
             }
         };
         fetchUsers();

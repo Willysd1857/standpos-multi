@@ -21,12 +21,11 @@ import CategoryForm from '@/components/settings/CategoryForm';
 import BusinessSettings from '@/components/settings/BusinessSettings';
 
 import DataSettings from '@/components/settings/DataSettings';
-import UserManagement from '@/components/settings/UserManagement';
 import AuditLogs from '@/components/settings/AuditLogs';
 import PasswordChange from '@/components/settings/PasswordChange';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Users, FileText, Lock } from 'lucide-react';
+import { FileText, Lock } from 'lucide-react';
 
 const iconMap = {
   default: LayoutGrid,
@@ -233,10 +232,6 @@ export default function Settings() {
             </TabsTrigger>
             {isAdmin() && (
               <>
-                <TabsTrigger value="users" className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-500 data-[state=active]:text-white">
-                  <Users className="w-4 h-4 mr-2" />
-                  Utilisateurs
-                </TabsTrigger>
                 <TabsTrigger value="audit" className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-500 data-[state=active]:text-white">
                   <FileText className="w-4 h-4 mr-2" />
                   Journaux
@@ -258,13 +253,6 @@ export default function Settings() {
           <TabsContent value="data">
             <DataSettings />
           </TabsContent>
-
-          {/* User Management tab (Admin only) */}
-          {isAdmin() && (
-            <TabsContent value="users">
-              <UserManagement />
-            </TabsContent>
-          )}
 
           {/* Audit Logs tab (Admin only) */}
           {isAdmin() && (

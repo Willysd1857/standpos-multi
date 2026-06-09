@@ -10,10 +10,7 @@ import ProductTable from '@/components/pos/ProductTable';
 import Cart from '@/components/pos/Cart';
 import PaymentModal from '@/components/pos/PaymentModal';
 import ReceiptModal from '@/components/pos/ReceiptModal';
-import OrderBubbles from '@/components/pos/OrderBubbles';
-import TableSelectionModal from '@/components/pos/TableSelectionModal';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { useAppSettings } from '@/contexts/AppSettingsContext';
 import { toast } from 'sonner';
 
 
@@ -35,7 +32,6 @@ export default function POS() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastTransaction, setLastTransaction] = useState(null);
   const [activeTransactionId, setActiveTransactionId] = useState(null);
-  const [showTableSelection, setShowTableSelection] = useState(false);
   const [isHolding, setIsHolding] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('posViewMode') || 'grid');
 
@@ -50,7 +46,6 @@ export default function POS() {
 
   // Currency context
   const { formatCurrency: formatCurrencyWithSymbol, formatDateTime } = useCurrency();
-  const { enableTables } = useAppSettings();
 
   const queryClient = useQueryClient();
 
@@ -338,28 +333,24 @@ export default function POS() {
       });
   }, [products, activeCategory, searchQuery, cart, hiddenCategoryIds]);
 
-  const handleCreateTable = async (tableNumber, isVip = false) => {
+  const createPendingOrder = async () => {
     try {
       const newTransaction = await createTransactionMutation.mutateAsync({
         type: 'vente',
         items: [],
         total: 0,
-        table_number: tableNumber,
-        is_vip: isVip,
         status: 'pending'
       });
 
-      // Initialize local cart state immediately
       setLocalCarts(prev => ({
         ...prev,
-        [newTransaction.id]: { items: [], is_vip: isVip }
+        [newTransaction.id]: { items: [], is_vip: false }
       }));
 
       setActiveTransactionId(newTransaction.id);
-      setShowTableSelection(false);
       return newTransaction;
     } catch (error) {
-      console.error("Create table error:", error);
+      console.error("Create order error:", error);
     }
   };
 
@@ -370,17 +361,11 @@ export default function POS() {
     let transactionId = activeTransactionId;
 
     if (!transactionId) {
-      if (isPlusButton && enableTables) {
-        setShowTableSelection(true);
-        return;
+      const newTx = await createPendingOrder();
+      if (newTx) {
+        transactionId = newTx.id;
       } else {
-        // Auto create VD table
-        const newTx = await handleCreateTable('VD');
-        if (newTx) {
-          transactionId = newTx.id;
-        } else {
-          return;
-        }
+        return;
       }
     }
 
@@ -403,7 +388,7 @@ export default function POS() {
     }
 
     updateLocalCart(transactionId, newItems);
-  }, [activeTransactionId, localCarts, updateLocalCart, handleCreateTable]);
+  }, [activeTransactionId, localCarts, updateLocalCart, createPendingOrder]);
 
   const updateQuantity = useCallback((productId, newQuantity) => {
     if (!activeTransactionId) return;
@@ -614,17 +599,6 @@ export default function POS() {
             </div>
           </header>
 
-          {/* Bubbles for active tables */}
-          {enableTables && (
-            <OrderBubbles
-              orders={pendingOrders}
-              activeOrderId={activeTransactionId}
-              vipCharge={Number(settings?.vip_charge) || 0}
-              onSelect={(id) => setActiveTransactionId(id)}
-              onNewOrder={() => setShowTableSelection(true)}
-            />
-          )}
-
           {/* Categories */}
           <div className="px-4 py-2 bg-gradient-to-b from-white to-gray-50/50 border-b border-gray-100">
             <CategoryTabs
@@ -728,14 +702,6 @@ export default function POS() {
         transaction={lastTransaction}
       />
 
-      {/* Table selection modal */}
-      {enableTables && (
-        <TableSelectionModal
-          open={showTableSelection}
-          onConfirm={handleCreateTable}
-          onCancel={() => setShowTableSelection(false)}
-        />
-      )}
     </div >
   );
 }

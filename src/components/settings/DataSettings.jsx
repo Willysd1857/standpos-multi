@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Database, FileSpreadsheet, Download, RefreshCw, Archive, Upload, Trash2, AlertTriangle } from 'lucide-react';
+import { Database, FileSpreadsheet, Download, RefreshCw, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { base44 } from '@/api/base44Client';
@@ -110,83 +110,6 @@ export default function DataSettings() {
                         </Button>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 border rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors mt-4">
-                        <div className="flex items-start gap-4">
-                            <div className="p-3 bg-white rounded-lg border shadow-sm">
-                                <Archive className="w-8 h-8 text-indigo-600" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-gray-900">Sauvegarde et Restauration</h3>
-                                <p className="text-sm text-gray-500 mt-1 max-w-md">
-                                    Créez une sauvegarde complète (Base de données + Images) ou restaurez une sauvegarde existante.
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button
-                                onClick={() => {
-                                    window.open('/api/backup/create', '_blank');
-                                }}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/20"
-                            >
-                                <Download className="w-4 h-4 mr-2" />
-                                Sauvegarder
-                            </Button>
-
-                            <label className="relative">
-                                <input
-                                    type="file"
-                                    accept=".zip"
-                                    className="hidden"
-                                    onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (!file) return;
-
-                                        toast('ATTENTION: La restauration va REMPLACER toutes vos données. Continuer ?', {
-                                            action: {
-                                                label: 'Restaurer',
-                                                onClick: async () => {
-                                                    const formData = new FormData();
-                                                    formData.append('file', file);
-
-                                                    setIsExporting(true);
-                                                    try {
-                                                        const res = await fetch('/api/backup/restore', {
-                                                            method: 'POST',
-                                                            body: formData
-                                                        });
-                                                        const data = await res.json();
-                                                        if (data.success) {
-                                                            toast.success('Restauration réussie ! L\'application va redémarrer.');
-                                                            setTimeout(() => window.location.reload(), 2000);
-                                                        } else {
-                                                            toast.error('Erreur: ' + data.error);
-                                                        }
-                                                    } catch (err) {
-                                                        console.error(err);
-                                                        toast.error('Erreur technique. Le serveur a peut-être redémarré.');
-                                                        setTimeout(() => window.location.reload(), 2000);
-                                                    } finally {
-                                                        setIsExporting(false);
-                                                        e.target.value = null;
-                                                    }
-                                                }
-                                            }
-                                        });
-                                    }}
-                                />
-                                <Button
-                                    asChild
-                                    className="bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 cursor-pointer"
-                                >
-                                    <span>
-                                        <Upload className="w-4 h-4 mr-2" />
-                                        Restaurer
-                                    </span>
-                                </Button>
-                            </label>
-                        </div>
-                    </div>
                 </CardContent>
             </Card>
 

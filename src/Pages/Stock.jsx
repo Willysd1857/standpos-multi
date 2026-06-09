@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Filter, RefreshCw, Wine, Boxes, Plus, Equal, ArrowRight, Truck, ClipboardCheck, Sliders } from 'lucide-react';
+import { ChevronDown, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Filter, RefreshCw, Wine, Boxes, Plus, Equal, ArrowRight, Truck, ClipboardCheck, Sliders, Warehouse, Store } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import StockTable from '@/components/stock/StockTable';
 import StockAdjustModal from '@/components/stock/StockAdjustModal';
 import CustomerPackagingTab from '@/components/stock/CustomerPackagingTab';
@@ -19,7 +20,6 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function Stock() {
   const { formatCurrency } = useCurrency();
-  const { isAdmin } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -30,10 +30,17 @@ export default function Stock() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState(null);
   const [adjustingLocation, setAdjustingLocation] = useState(null);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const queryClient = useQueryClient();
 
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+
+  const { data: allLocations = [] } = useQuery({
+    queryKey: ['locations'],
+    queryFn: () => fetchAPI('/locations'),
+    enabled: isAdmin() && !user?.location_id,
+  });
 
   const { data: allProducts = [], isLoading: loadingProducts, isRefetching: refetchingProducts, refetch: refetchProducts } = useQuery({
     queryKey: ['products'],
@@ -341,8 +348,14 @@ export default function Stock() {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setAdjustingLocation({ id: user?.location_id, name: user?.location_name || 'Mon emplacement' })}
-              disabled={!user?.location_id}
+              onClick={() => {
+                if (user?.location_id) {
+                  setAdjustingLocation({ id: user.location_id, name: user.location_name || 'Mon emplacement' });
+                } else if (isAdmin()) {
+                  setShowLocationPicker(true);
+                }
+              }}
+              disabled={!user?.location_id && !isAdmin()}
               className="rounded-xl bg-white border-orange-200 text-orange-700 hover:bg-orange-50 shadow-sm gap-2"
               title="Ajuster le stock d'emballages de votre emplacement (inventaire physique)"
             >
@@ -756,6 +769,45 @@ export default function Stock() {
           onClose={() => setAdjustingLocation(null)}
           location={adjustingLocation}
         />
+
+        {/* Sélecteur d'emplacement pour admin sans location_id */}
+        {isAdmin() && (
+          <Dialog open={showLocationPicker} onOpenChange={setShowLocationPicker}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Sliders className="w-5 h-5 text-orange-600" />
+                  Choisir un emplacement à ajuster
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 py-2">
+                {allLocations.filter(l => l.is_active !== false).map(loc => (
+                  <button
+                    key={loc.id}
+                    onClick={() => {
+                      setShowLocationPicker(false);
+                      setAdjustingLocation({ id: loc.id, name: loc.name });
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-orange-300 hover:bg-orange-50 transition-all text-left"
+                  >
+                    {loc.type === 'store' ? (
+                      <Store className="w-5 h-5 text-blue-500" />
+                    ) : (
+                      <Warehouse className="w-5 h-5 text-amber-500" />
+                    )}
+                    <div>
+                      <p className="font-semibold text-gray-800">{loc.name}</p>
+                      <p className="text-xs text-gray-500">{loc.type === 'store' ? 'Magasin' : 'Entrepôt'}</p>
+                    </div>
+                  </button>
+                ))}
+                {allLocations.filter(l => l.is_active !== false).length === 0 && (
+                  <p className="text-center text-gray-500 py-4">Aucun emplacement disponible</p>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );
