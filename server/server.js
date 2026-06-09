@@ -193,6 +193,23 @@ app.listen(PORT, () => {
     console.log(`✓ Server is running on port ${PORT}`);
     console.log(`✓ Static files served from: ${distPath}`);
 
+    // Vérification critique : SUPABASE_SERVICE_ROLE_KEY requise pour les écritures
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.error('');
+        console.error('❌ ============================================================');
+        console.error('❌ SUPABASE_SERVICE_ROLE_KEY NON DÉFINIE');
+        console.error('❌ Le serveur utilise la clé ANON qui est soumise aux RLS.');
+        console.error('❌ Les opérations INSERT/UPDATE sur stock_transfers,');
+        console.error('❌ stock_transfer_items et stock_by_location seront BLOQUÉES.');
+        console.error('❌');
+        console.error('❌ FIX : Ajoutez SUPABASE_SERVICE_ROLE_KEY dans les variables');
+        console.error('❌ d\'environnement de votre service Render.');
+        console.error('============================================================');
+        console.error('');
+    } else {
+        console.log('✓ SUPABASE_SERVICE_ROLE_KEY configurée');
+    }
+
     // Vérification post-démarrage : la colonne transfer_type doit exister
     // (cf. server/migrations/empty_packaging_transit.sql). Sans elle, tout
     // transfert d'emballages échoue avec une erreur de cache de schéma

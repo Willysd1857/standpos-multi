@@ -276,6 +276,9 @@ export const base44 = {
                 if (filters?.entity_type) params.append('entity_type', filters.entity_type);
                 return fetchAPI(`/packaging/consignments?${params.toString()}`);
             },
+            getSupplierOutstanding: async () => {
+                return fetchAPI('/packaging/supplier-outstanding');
+            },
             verifyReception: async (data) => {
                 return fetchAPI('/packaging/verify-reception', {
                     method: 'POST',

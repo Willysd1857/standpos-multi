@@ -58,7 +58,13 @@ router.post('/send', requireAuth, async (req, res) => {
         const actualFromLocationId = from_location_id || req.body.from_location_id; // admin peut choisir
 
         if (!actualFromLocationId || !to_location_id || !items || !items.length) {
-            return res.status(400).json({ error: 'Données manquantes' });
+            console.error('❌ [send] Données manquantes:', { actualFromLocationId, to_location_id, itemsLength: items?.length });
+            return res.status(400).json({ error: 'Données manquantes: origine, destination et articles requis.' });
+        }
+
+        // Vérifier que le service_role_key est utilisée (sinon RLS bloquera)
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            console.warn('⚠️ [send] SUPABASE_SERVICE_ROLE_KEY non définie — le serveur utilise la clé ANON. Les opérations INSERT/UPDATE seront bloquées par RLS.');
         }
 
         const transferId = uuidv4();
@@ -84,7 +90,13 @@ router.post('/send', requireAuth, async (req, res) => {
                 shipped_at: new Date().toISOString()
             }]);
             
-        if (headerErr) throw headerErr;
+        if (headerErr) {
+            console.error('❌ [send] Erreur INSERT stock_transfers:', headerErr);
+            if (/row-level security/i.test(headerErr.message || '')) {
+                return res.status(403).json({ error: 'Erreur RLS: Le serveur n\'a pas les droits d\'écriture sur stock_transfers. Vérifiez SUPABASE_SERVICE_ROLE_KEY et les politiques RLS.' });
+            }
+            throw headerErr;
+        }
 
         // Insérer les lignes et déduire le stock du site expéditeur
         for (const item of items) {
@@ -152,6 +164,9 @@ router.post('/send', requireAuth, async (req, res) => {
                     .eq('id', stockBefore.id);
                 if (updateErr) {
                     console.error('⚠️ Erreur mise à jour stock_by_location:', updateErr.message);
+                    if (/row-level security/i.test(updateErr.message || '')) {
+                        console.error('❌ RLS bloque la mise à jour de stock_by_location. Vérifiez SUPABASE_SERVICE_ROLE_KEY et les politiques RLS.');
+                    }
                 }
             } else {
                 // Pas de stock_by_location pour ce produit à cet emplacement — 
@@ -172,6 +187,9 @@ router.post('/send', requireAuth, async (req, res) => {
                     .eq('id', item.product_id);
                 if (prodUpdateErr) {
                     console.error('⚠️ Erreur mise à jour products.stock:', prodUpdateErr.message);
+                    if (/row-level security/i.test(prodUpdateErr.message || '')) {
+                        console.error('❌ RLS bloque la mise à jour de products.stock. Vérifiez SUPABASE_SERVICE_ROLE_KEY et les politiques RLS.');
+                    }
                 }
             }
         }

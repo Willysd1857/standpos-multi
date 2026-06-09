@@ -24,12 +24,25 @@ const API_BASE = '/api';
 const getToken = () => localStorage.getItem('auth_token');
 const fetchAPI = async (endpoint, options = {}) => {
   const token = getToken();
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers },
-    ...options,
-  });
-  if (!res.ok) { const err = await res.json().catch(() => ({ error: res.statusText })); throw new Error(err.error || 'Request failed'); }
-  return res.json();
+  const url = `${API_BASE}${endpoint}`;
+  try {
+    const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers },
+      ...options,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      console.error(`[fetchAPI] ${res.status} ${endpoint}:`, err);
+      throw new Error(err.error || `Erreur serveur ${res.status}`);
+    }
+    return res.json();
+  } catch (err) {
+    if (err.name === 'TypeError' && err.message.includes('fetch')) {
+      console.error(`[fetchAPI] Erreur réseau pour ${endpoint}:`, err);
+      throw new Error('Impossible de contacter le serveur. Vérifiez votre connexion Internet ou que le serveur est accessible.');
+    }
+    throw err;
+  }
 };
 
 const STATUS_MAP = {
@@ -96,7 +109,14 @@ export default function StockTransfers() {
   }, [products, searchQuery, activeCategory]);
 
   const sendMut = useMutation({
-    mutationFn: (data) => fetchAPI('/stock-transfers/send', { method: 'POST', body: JSON.stringify(data) }),
+    mutationFn: async (data) => {
+      try {
+        return await fetchAPI('/stock-transfers/send', { method: 'POST', body: JSON.stringify(data) });
+      } catch (err) {
+        console.error('[StockTransfers] Erreur API send:', err.message);
+        throw err;
+      }
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['stock-transfers'] });
       queryClient.invalidateQueries({ queryKey: ['products-list'] });
@@ -107,7 +127,21 @@ export default function StockTransfers() {
       setTransferNotes('');
       toast.success(`Transfert ${data.reference} expédié avec succès !`);
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => {
+      console.error('[StockTransfers] Mutation send error:', e);
+      const msg = e?.message || 'Erreur inconnue';
+      if (msg.includes('row-level security') || msg.includes('RLS') || msg.includes('permission denied')) {
+        toast.error('Erreur de sécurité (RLS): Le serveur n\'a pas les droits d\'écriture. Vérifiez la configuration Supabase.', { duration: 8000 });
+      } else if (msg.includes('column') && msg.includes('does not exist')) {
+        toast.error('Erreur de colonne manquante: La migration n\'a pas été appliquée. Vérifiez la base de données.', { duration: 8000 });
+      } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('ERR_CONNECTION')) {
+        toast.error('Erreur de connexion: Le serveur API n\'est pas accessible. Vérifiez que le serveur est démarré.', { duration: 8000 });
+      } else if (msg.includes('Données manquantes')) {
+        toast.error('Données manquantes: Vérifiez que tous les champs obligatoires sont remplis.', { duration: 6000 });
+      } else {
+        toast.error(`Expédition échouée: ${msg}`, { duration: 6000 });
+      }
+    },
   });
 
   const receiveMut = useMutation({
@@ -176,7 +210,7 @@ export default function StockTransfers() {
     ));
   }, []);
 
-  const handleCheckout = (e) => {
+  const handleCheckout = async (e) => {
     e.preventDefault();
     if (!cart.length) return toast.error('Ajoutez au moins un produit');
     
@@ -184,7 +218,11 @@ export default function StockTransfers() {
       return toast.error('Veuillez sélectionner une origine');
     }
 
-    sendMut.mutate({
+    if (!toLocationId) {
+      return toast.error('Veuillez sélectionner un destinataire');
+    }
+
+    const payload = {
       from_location_id: fromLocationId || undefined,
       to_location_id: toLocationId,
       notes: transferNotes,
@@ -194,7 +232,14 @@ export default function StockTransfers() {
         empty_packaging_qty: i.empty_packaging_qty || 0,
         empty_secondary_packaging_qty: i.empty_secondary_packaging_qty || 0,
       })),
-    });
+    };
+
+    try {
+      sendMut.mutate(payload);
+    } catch (err) {
+      console.error('[StockTransfers] Erreur handleCheckout:', err);
+      toast.error(`Erreur: ${err.message || 'Échec de l\'expédition. Vérifiez votre connexion.'}`);
+    }
   };
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);

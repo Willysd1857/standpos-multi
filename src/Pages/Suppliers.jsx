@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Truck, Search, Plus, Trash2, CreditCard, DollarSign,
   Phone, User, Package, RefreshCw, Eye, ArrowDownLeft,
-  ChevronDown, X, CheckCircle2, AlertTriangle, Undo2
+  ChevronDown, X, CheckCircle2, AlertTriangle, Undo2, Calendar
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { format, differenceInDays, isAfter } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 const API_BASE = '/api';
 const getToken = () => localStorage.getItem('auth_token');
@@ -46,10 +48,10 @@ export default function Suppliers() {
   const [newSupplier, setNewSupplier] = useState({ name: '', contact_info: '', phone: '' });
   const [payment, setPayment] = useState({ amount: '', payment_method: 'cash', notes: '' });
 
-  // Fetch
+  // Fetch enriched suppliers (with packaging outstanding + due dates)
   const { data: suppliers = [], isLoading, refetch } = useQuery({
-    queryKey: ['suppliers'],
-    queryFn: () => fetchAPI('/suppliers'),
+    queryKey: ['suppliers-enriched'],
+    queryFn: () => fetchAPI('/suppliers/enriched'),
   });
 
   // Stats
@@ -74,7 +76,7 @@ export default function Suppliers() {
   const createMut = useMutation({
     mutationFn: (data) => fetchAPI('/suppliers', { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['suppliers-enriched'] });
       setIsAddModalOpen(false);
       setNewSupplier({ name: '', contact_info: '', phone: '' });
       toast.success('Fournisseur ajouté');
@@ -85,7 +87,7 @@ export default function Suppliers() {
   const payMut = useMutation({
     mutationFn: ({ id, data }) => fetchAPI(`/suppliers/${id}/pay`, { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['suppliers-enriched'] });
       setIsPayModalOpen(false);
       setPayment({ amount: '', payment_method: 'cash', notes: '' });
       toast.success('Paiement enregistré');
@@ -194,45 +196,113 @@ export default function Suppliers() {
                   <TableHead>Téléphone</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead className="text-right">Dette</TableHead>
+                  <TableHead className="text-right">
+                    <span className="flex items-center justify-end gap-1">
+                      <Package className="w-3.5 h-3.5" />
+                      Bouteilles à rendre
+                    </span>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <span className="flex items-center justify-end gap-1">
+                      <Package className="w-3.5 h-3.5" />
+                      Cageots à rendre
+                    </span>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <span className="flex items-center justify-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Échéance
+                    </span>
+                  </TableHead>
                   <TableHead className="text-right w-[200px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   [...Array(3)].map((_, i) => (
-                    <TableRow key={i}><TableCell colSpan={5} className="h-16 animate-pulse bg-gray-50" /></TableRow>
+                    <TableRow key={i}><TableCell colSpan={8} className="h-16 animate-pulse bg-gray-50" /></TableRow>
                   ))
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-gray-500">
+                    <TableCell colSpan={8} className="text-center py-12 text-gray-500">
                       Aucun fournisseur trouvé
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filtered.map(sup => (
-                    <TableRow key={sup.id} className="hover:bg-gray-50/50 transition-colors">
-                      <TableCell className="font-medium text-gray-900">{sup.name}</TableCell>
-                      <TableCell className="text-gray-600">{sup.phone || '—'}</TableCell>
-                      <TableCell className="text-gray-600">{sup.contact_info || '—'}</TableCell>
-                      <TableCell className="text-right">
-                        <span className={`font-bold ${parseFloat(sup.total_debt) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                          {formatMoney(sup.total_debt)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openDetail(sup)} className="text-gray-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg" title="Détails">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          {parseFloat(sup.total_debt) > 0 && (
-                            <Button variant="ghost" size="icon" onClick={() => openPayModal(sup)} className="text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Payer">
-                              <DollarSign className="w-4 h-4" />
-                            </Button>
+                  filtered.map(sup => {
+                    const isDueDateOverdue = sup.earliest_due_date && 
+                      isAfter(new Date(), new Date(sup.earliest_due_date)) && 
+                      parseFloat(sup.total_debt) > 0;
+                    const daysUntilDue = sup.earliest_due_date ? 
+                      differenceInDays(new Date(sup.earliest_due_date), new Date()) : null;
+
+                    return (
+                      <TableRow key={sup.id} className="hover:bg-gray-50/50 transition-colors">
+                        <TableCell className="font-medium text-gray-900">{sup.name}</TableCell>
+                        <TableCell className="text-gray-600">{sup.phone || '—'}</TableCell>
+                        <TableCell className="text-gray-600">{sup.contact_info || '—'}</TableCell>
+                        <TableCell className="text-right">
+                          <span className={`font-bold ${parseFloat(sup.total_debt) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {formatMoney(sup.total_debt)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {sup.outstanding_bottles > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-bold">
+                              <Package className="w-3.5 h-3.5" />
+                              {sup.outstanding_bottles}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {sup.outstanding_crates > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-bold">
+                              <Package className="w-3.5 h-3.5" />
+                              {sup.outstanding_crates}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {sup.earliest_due_date ? (
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium ${
+                              isDueDateOverdue 
+                                ? 'bg-red-100 text-red-700' 
+                                : daysUntilDue !== null && daysUntilDue <= 7 
+                                  ? 'bg-amber-100 text-amber-700' 
+                                  : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {isDueDateOverdue && <AlertTriangle className="w-3.5 h-3.5" />}
+                              {format(new Date(sup.earliest_due_date), 'dd MMM yyyy', { locale: fr })}
+                              {daysUntilDue !== null && daysUntilDue > 0 && (
+                                <span className="text-xs opacity-75 ml-1">({daysUntilDue}j)</span>
+                              )}
+                              {isDueDateOverdue && (
+                                <span className="text-xs font-bold ml-1">PASSÉE</span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => openDetail(sup)} className="text-gray-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg" title="Détails">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {parseFloat(sup.total_debt) > 0 && (
+                              <Button variant="ghost" size="icon" onClick={() => openPayModal(sup)} className="text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg" title="Payer">
+                                <DollarSign className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

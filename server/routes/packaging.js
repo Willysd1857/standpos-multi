@@ -287,6 +287,153 @@ router.get('/consignments', async (req, res) => {
     }
 });
 
+// ─── Outstanding packaging to return to suppliers ────────────────
+// Primary source: packaging_consignments (entity_type='supplier', status='pending')
+// Fallback: packaging_movements (for cases without verify-reception checklist)
+router.get('/supplier-outstanding', async (req, res) => {
+    try {
+        // 1. PRIMARY: Read from packaging_consignments (authoritative source)
+        const { data: consignments, error: consErr } = await supabase
+            .from('packaging_consignments')
+            .select('*')
+            .eq('entity_type', 'supplier')
+            .in('status', ['pending', 'partial']);
+
+        if (consErr) throw consErr;
+
+        // Group by supplier+product, summing outstanding quantities
+        const outstanding = {};
+        for (const c of consignments || []) {
+            const key = `${c.entity_id}::${c.product_id}`;
+            if (!outstanding[key]) {
+                outstanding[key] = {
+                    supplier_id: c.entity_id,
+                    supplier_name: c.entity_name || 'Fournisseur inconnu',
+                    product_id: c.product_id,
+                    product_name: c.product_name || 'Produit inconnu',
+                    empty_packaging_qty: 0,
+                    empty_secondary_packaging_qty: 0,
+                    purchase_ref: c.source_transaction_id || null,
+                    created_at: c.created_at || null
+                };
+            }
+            outstanding[key].empty_packaging_qty += Number(c.empty_packaging_qty) || 0;
+            outstanding[key].empty_secondary_packaging_qty += Number(c.empty_secondary_packaging_qty) || 0;
+        }
+
+        // 2. FALLBACK: Read from packaging_movements (for direct purchases without verify-reception)
+        //    Only add items NOT already covered by consignments
+        const { data: movements, error: movErr } = await supabase
+            .from('packaging_movements')
+            .select('*')
+            .in('movement_type', ['in', 'supplier_return']);
+
+        if (movErr) throw movErr;
+
+        // Get purchase groups to resolve supplier_id from source_id
+        const purchaseIds = [...new Set(
+            (movements || [])
+                .filter(m => m.source_type === 'purchase' && m.source_id)
+                .map(m => m.source_id)
+        )];
+
+        let purchaseGroups = [];
+        if (purchaseIds.length > 0) {
+            for (let i = 0; i < purchaseIds.length; i += 100) {
+                const batch = purchaseIds.slice(i, i + 100);
+                const { data: batchData } = await supabase
+                    .from('purchase_groups')
+                    .select('id, supplier_id, supplier_name, reference, created_at')
+                    .in('id', batch);
+                if (batchData) purchaseGroups.push(...batchData);
+            }
+        }
+
+        const pgLookup = {};
+        for (const pg of purchaseGroups) {
+            pgLookup[pg.id] = pg;
+        }
+
+        // Process movements as fallback
+        const movementOutstanding = {};
+        for (const m of movements || []) {
+            const pgInfo = m.source_type === 'purchase' ? pgLookup[m.source_id] : null;
+            const supplierId = pgInfo?.supplier_id || 'unknown';
+            const supplierName = pgInfo?.supplier_name || 'Fournisseur inconnu';
+            const productId = m.product_id;
+            const key = `${supplierId}::${productId}`;
+
+            if (!movementOutstanding[key]) {
+                movementOutstanding[key] = {
+                    supplier_id: supplierId,
+                    supplier_name: supplierName,
+                    product_id: productId,
+                    product_name: m.product_name || 'Produit inconnu',
+                    received_bottles: 0,
+                    received_crates: 0,
+                    returned_bottles: 0,
+                    returned_crates: 0,
+                    purchase_ref: pgInfo?.reference || null,
+                    created_at: pgInfo?.created_at || m.created_at || null
+                };
+            }
+
+            const bottles = Number(m.empty_packaging_qty) || 0;
+            const crates = Number(m.empty_secondary_packaging_qty) || 0;
+
+            if (m.movement_type === 'in') {
+                movementOutstanding[key].received_bottles += bottles;
+                movementOutstanding[key].received_crates += crates;
+            } else if (m.movement_type === 'supplier_return') {
+                movementOutstanding[key].returned_bottles += bottles;
+                movementOutstanding[key].returned_crates += crates;
+            }
+        }
+
+        // Merge: only add movement items NOT already in consignments
+        for (const key of Object.keys(movementOutstanding)) {
+            if (outstanding[key]) continue; // already covered by consignments
+            const mo = movementOutstanding[key];
+            const outstandingBottles = mo.received_bottles - mo.returned_bottles;
+            const outstandingCrates = mo.received_crates - mo.returned_crates;
+            if (outstandingBottles > 0 || outstandingCrates > 0) {
+                outstanding[key] = {
+                    supplier_id: mo.supplier_id,
+                    supplier_name: mo.supplier_name,
+                    product_id: mo.product_id,
+                    product_name: mo.product_name,
+                    empty_packaging_qty: outstandingBottles,
+                    empty_secondary_packaging_qty: outstandingCrates,
+                    purchase_ref: mo.purchase_ref,
+                    created_at: mo.created_at
+                };
+            }
+        }
+
+        // 3. Build result
+        const result = Object.entries(outstanding).map(([key, o]) => ({
+            id: key,
+            supplier_id: o.supplier_id,
+            entity_name: o.supplier_name,
+            product_id: o.product_id,
+            product_name: o.product_name,
+            empty_packaging_qty: o.empty_packaging_qty,
+            empty_secondary_packaging_qty: o.empty_secondary_packaging_qty,
+            source_reference: o.purchase_ref,
+            created_at: o.created_at,
+            status: 'pending'
+        }));
+
+        // Sort by most recent first
+        result.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+        res.json(result);
+    } catch (error) {
+        console.error('❌ Erreur GET /packaging/supplier-outstanding:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Return a specific consignment
 router.post('/consignments/:id/return', async (req, res) => {
     try {
@@ -614,10 +761,14 @@ router.post('/breakage', async (req, res) => {
 // Verify reception of packaging (Checklist) — called by the recipient to validate reception
 // Body: {
 //   purchase_id, supplier_id, supplier_name,
-//   items: [{ product_id, product_name, empty_packaging_qty, empty_secondary_packaging_qty,
+//   items: [{ product_id, product_name, received_empty_bottles, received_empty_crates,
 //             broken_packaging_qty, broken_secondary_packaging_qty,
 //             packaging_deposit_value, secondary_packaging_deposit_value, notes, verified }]
 // }
+//
+// Direct consignment logic:
+//   received_empty_bottles/crates = empty packaging received from supplier = consignment to return
+//   The received qty is recorded as a pending consignment and suppliers.outstanding is incremented.
 router.post('/verify-reception', async (req, res) => {
     try {
         const user = getUserFromRequest(req);
@@ -642,13 +793,6 @@ router.post('/verify-reception', async (req, res) => {
         }
 
         // Determine the type of the destination location.
-        // CRITICAL: the global `products.stock` is the "Magasin" (store) stock only.
-        // When a purchase's destination is a warehouse (Entrepôt), we must NOT touch
-        // the global products.stock — only the per-location stock_by_location row.
-        //
-        // We ALWAYS read the destination strictly from `purchaseGroup.location_id`,
-        // NEVER from `user.location_id`. Even an admin validating on behalf of an
-        // Entrepôt must not pollute the Magasin stock.
         if (purchaseGroup && purchaseGroup.location_id) {
             const { data: destLoc } = await supabase
                 .from('locations')
@@ -657,7 +801,6 @@ router.post('/verify-reception', async (req, res) => {
                 .maybeSingle();
             destinationIsStore = destLoc?.type === 'store';
         } else {
-            // Purchase has no `location_id` at all → legacy "direct to Magasin" flow.
             destinationIsStore = true;
         }
 
@@ -673,14 +816,7 @@ router.post('/verify-reception', async (req, res) => {
             }
         }
 
-        const results = [];
-        let totalBottlesReceived = 0;
-        let totalCratesReceived = 0;
-        let totalBottlesBroken = 0;
-        let totalCratesBroken = 0;
-        let totalDepositValue = 0;
-
-        // Determine which products the order contained (full order items, not just the checklist)
+        // Build ordered quantity lookup from purchase_group_items
         const orderItemsByProduct = {};
         if (purchaseGroup?.items) {
             for (const oi of purchaseGroup.items) {
@@ -690,9 +826,14 @@ router.post('/verify-reception', async (req, res) => {
             }
         }
 
+        const results = [];
+        let totalBottlesReceived = 0;
+        let totalCratesReceived = 0;
+        let totalBottlesBroken = 0;
+        let totalCratesBroken = 0;
+        let totalDepositValue = 0;
+
         // 1. ALWAYS add the full product quantity to destination stock for each order item
-        //    (independent of whether the user entered any empty packaging qty).
-        //    This is the core "reception" action: the ordered product arrives at the warehouse.
         if (purchaseGroup && purchaseGroup.reception_status !== 'received') {
             for (const productId of Object.keys(orderItemsByProduct)) {
                 const orderItem = orderItemsByProduct[productId];
@@ -709,10 +850,6 @@ router.post('/verify-reception', async (req, res) => {
                 const currentStock = Number(product.stock) || 0;
                 const newStock = currentStock + qty;
 
-                // CRITICAL: only touch the global `products.stock` if the
-                // destination is a `store` (Magasin). For warehouse destinations
-                // (Entrepôt 1/2), the global products.stock must stay unchanged —
-                // it is the Magasin's stock, not the Entrepôt's.
                 if (destinationIsStore) {
                     await supabase.from('products').update({ stock: newStock }).eq('id', productId);
                 }
@@ -754,30 +891,34 @@ router.post('/verify-reception', async (req, res) => {
             }
         }
 
-        // 2. For each item the user actually filled in the checklist, record the optional
-        //    empty packaging consignment + breakage loss. (These are independent of stock.)
+        // 2. For each item: record received empty packaging as consignment
         for (const item of items) {
             if (!item.product_id) continue;
 
-            const emptyB = Number(item.empty_packaging_qty) || 0;
-            const emptyC = Number(item.empty_secondary_packaging_qty) || 0;
+            // Fields from frontend: received_empty_bottles / received_empty_crates
+            const emptyB = Number(item.received_empty_bottles) || 0;
+            const emptyC = Number(item.received_empty_crates) || 0;
             const brokenB = Number(item.broken_packaging_qty) || 0;
             const brokenC = Number(item.broken_secondary_packaging_qty) || 0;
             const depB = Number(item.packaging_deposit_value) || 0;
             const depC = Number(item.secondary_packaging_deposit_value) || 0;
 
-            // Skip if the user didn't enter any packaging info — stock step above already handled it.
-            if (emptyB <= 0 && emptyC <= 0 && brokenB <= 0 && brokenC <= 0) continue;
+            // Ordered quantity from purchase_group_items (for reference only)
+            const orderedB = Number(orderItemsByProduct[item.product_id]?.quantity) || 0;
 
             const { data: product } = await supabase
                 .from('products')
-                .select('id, name, empty_packaging_qty, empty_secondary_packaging_qty, bottle_deposit_price, crate_deposit_price')
+                .select('id, name, empty_packaging_qty, empty_secondary_packaging_qty, bottle_deposit_price, crate_deposit_price, units_per_secondary_packaging')
                 .eq('id', item.product_id)
                 .maybeSingle();
             if (!product) continue;
 
-            // Consignment record (only if there are empty packages to track)
+            // Skip if nothing to process
+            if (emptyB <= 0 && emptyC <= 0 && brokenB <= 0 && brokenC <= 0) continue;
+
+            // ── CONSIGNMENT: received empty packaging = debt to return ──
             if (emptyB > 0 || emptyC > 0) {
+                // 1. Create packaging_consignments record (pending return)
                 const { error: consErr } = await supabase
                     .from('packaging_consignments')
                     .insert({
@@ -799,17 +940,31 @@ router.post('/verify-reception', async (req, res) => {
                     });
                 if (consErr) console.warn('⚠️ consignment insert:', consErr.message);
 
-                // Update product empty packaging counters (+ empty received)
+                // 2. Increment suppliers.outstanding_bottles/crates
+                if (supplier_id && supplier_id !== 'unknown') {
+                    const { data: supplier } = await supabase
+                        .from('suppliers')
+                        .select('id, outstanding_bottles, outstanding_crates')
+                        .eq('id', supplier_id)
+                        .maybeSingle();
+                    if (supplier) {
+                        await supabase.from('suppliers').update({
+                            outstanding_bottles: (Number(supplier.outstanding_bottles) || 0) + emptyB,
+                            outstanding_crates: (Number(supplier.outstanding_crates) || 0) + emptyC,
+                            updated_at: new Date().toISOString()
+                        }).eq('id', supplier_id);
+                    }
+                }
+
+                // 3. Update product empty packaging counters
                 const oldB = Number(product.empty_packaging_qty) || 0;
                 const oldC = Number(product.empty_secondary_packaging_qty) || 0;
-                const newB = oldB + emptyB;
-                const newC = oldC + emptyC;
-
                 await supabase.from('products').update({
-                    empty_packaging_qty: newB,
-                    empty_secondary_packaging_qty: newC
+                    empty_packaging_qty: oldB + emptyB,
+                    empty_secondary_packaging_qty: oldC + emptyC
                 }).eq('id', item.product_id);
 
+                // 4. Record packaging_movements
                 await supabase.from('packaging_movements').insert({
                     id: uuidv4(),
                     location_id: purchaseLocationId,
@@ -820,11 +975,11 @@ router.post('/verify-reception', async (req, res) => {
                     empty_secondary_packaging_qty: emptyC,
                     source_type: 'purchase',
                     source_id: purchase_id || null,
-                    notes: `Réception achat${item.notes ? ' - ' + item.notes : ''}`,
+                    notes: `Réception achat — ${emptyB} bouteille(s), ${emptyC} cageot(s) vide(s) reçu(s)${item.notes ? ' — ' + item.notes : ''}`,
                     created_at: new Date().toISOString()
                 });
 
-                // Update stock_by_location empty packaging counters if location known
+                // 5. Update stock_by_location empty packaging counters
                 if (purchaseLocationId) {
                     const { data: existingStock } = await supabase
                         .from('stock_by_location')
@@ -851,7 +1006,7 @@ router.post('/verify-reception', async (req, res) => {
                 }
             }
 
-            // Breakage as loss (independent of empty packaging)
+            // ── BREAKAGE (independent of consignment) ───────────────────
             if (brokenB > 0 || brokenC > 0) {
                 await supabase.from('losses_and_damages').insert({
                     id: uuidv4(),
@@ -892,8 +1047,9 @@ router.post('/verify-reception', async (req, res) => {
             results.push({
                 product_id: item.product_id,
                 product_name: product.name,
-                empty_received_bottles: emptyB,
-                empty_received_crates: emptyC,
+                ordered_bottles: orderedB,
+                received_empty_bottles: emptyB,
+                received_empty_crates: emptyC,
                 broken_bottles: brokenB,
                 broken_crates: brokenC
             });
@@ -908,8 +1064,8 @@ router.post('/verify-reception', async (req, res) => {
             {
                 supplier_name: supplier_name || null,
                 items_count: results.length,
-                total_bottles_received: totalBottlesReceived,
-                total_crates_received: totalCratesReceived,
+                total_empty_bottles_received: totalBottlesReceived,
+                total_empty_crates_received: totalCratesReceived,
                 total_bottles_broken: totalBottlesBroken,
                 total_crates_broken: totalCratesBroken,
                 total_deposit_value: totalDepositValue
@@ -921,10 +1077,6 @@ router.post('/verify-reception', async (req, res) => {
         // Mark the purchase group as received (only if it was still in_transit)
         let receptionUpdated = false;
         if (purchaseGroup && purchaseGroup.reception_status !== 'received') {
-            // Capture and check the result — Supabase returns errors in the
-            // payload, NOT as thrown exceptions, so a try/catch alone is
-            // insufficient and was causing the UI to think reception succeeded
-            // while the row was never updated.
             const { data: updData, error: updErr } = await supabase
                 .from('purchase_groups')
                 .update({
@@ -954,10 +1106,12 @@ router.post('/verify-reception', async (req, res) => {
             items: results,
             reception_updated: receptionUpdated,
             totals: {
-                bottles_received: totalBottlesReceived,
-                crates_received: totalCratesReceived,
+                bottles_returned: totalBottlesReceived,
+                crates_returned: totalCratesReceived,
                 bottles_broken: totalBottlesBroken,
                 crates_broken: totalCratesBroken,
+                consigned: totalConsigned,
+                credit: totalCredit,
                 deposit_value: totalDepositValue
             }
         });

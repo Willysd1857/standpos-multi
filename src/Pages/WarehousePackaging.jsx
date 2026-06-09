@@ -12,26 +12,89 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 export default function WarehousePackaging() {
     const { formatCurrency } = useCurrency();
     
-    // Fetch Consignments
+    // Fetch outstanding packaging from movements (reliable source)
+    const { data: outstanding = [], isLoading: loadingOutstanding } = useQuery({
+        queryKey: ['supplier-outstanding'],
+        queryFn: () => base44.entities.Packaging.getSupplierOutstanding(),
+    });
+
+    // Also fetch consignments as fallback (for cases where verify-reception was used)
     const { data: consignments = [], isLoading: loadingConsignments } = useQuery({
         queryKey: ['packaging_consignments'],
         queryFn: () => base44.entities.Packaging.getConsignments({ entity_type: 'supplier' }),
     });
 
-    const pendingConsignments = consignments.filter(c => c.status !== 'returned');
+    // Merge both sources: outstanding movements + consignments, deduplicate by supplier+product
+    const allItems = useMemo(() => {
+        const map = new Map();
+
+        // First: add outstanding from movements (primary source)
+        for (const item of outstanding) {
+            const key = `${item.supplier_id}::${item.product_id}`;
+            map.set(key, {
+                id: item.id,
+                entity_name: item.entity_name,
+                product_name: item.product_name,
+                empty_packaging_qty: item.empty_packaging_qty,
+                empty_secondary_packaging_qty: item.empty_secondary_packaging_qty,
+                created_at: item.created_at,
+                source_reference: item.source_reference,
+                due_date: null,
+                status: 'pending',
+                packaging_deposit_value: 0,
+                secondary_packaging_deposit_value: 0
+            });
+        }
+
+        // Then: add consignments (not yet returned) — only if not already covered
+        for (const c of consignments) {
+            if (c.status === 'returned') continue;
+            const key = `${c.entity_id}::${c.product_id}`;
+            if (!map.has(key)) {
+                map.set(key, {
+                    id: c.id,
+                    entity_name: c.entity_name,
+                    product_name: c.product_name,
+                    empty_packaging_qty: Number(c.empty_packaging_qty) || 0,
+                    empty_secondary_packaging_qty: Number(c.empty_secondary_packaging_qty) || 0,
+                    created_at: c.created_at,
+                    source_reference: c.source_transaction_id,
+                    due_date: c.due_date,
+                    status: c.status,
+                    packaging_deposit_value: Number(c.packaging_deposit_value) || 0,
+                    secondary_packaging_deposit_value: Number(c.secondary_packaging_deposit_value) || 0
+                });
+            } else {
+                // Consignment has more info (deposit values, due_date) — merge if needed
+                const existing = map.get(key);
+                if (!existing.due_date && c.due_date) existing.due_date = c.due_date;
+                if (!existing.packaging_deposit_value && c.packaging_deposit_value) {
+                    existing.packaging_deposit_value = Number(c.packaging_deposit_value) || 0;
+                }
+                if (!existing.secondary_packaging_deposit_value && c.secondary_packaging_deposit_value) {
+                    existing.secondary_packaging_deposit_value = Number(c.secondary_packaging_deposit_value) || 0;
+                }
+            }
+        }
+
+        return [...map.values()];
+    }, [outstanding, consignments]);
+
+    const pendingItems = allItems.filter(c => c.status !== 'returned');
+    const isLoading = loadingOutstanding || loadingConsignments;
 
     // Calculate Financial Risk
     const financialRisk = useMemo(() => {
         let total = 0;
-        pendingConsignments.forEach(c => {
+        pendingItems.forEach(c => {
             total += (c.empty_packaging_qty * (c.packaging_deposit_value || 0)) +
                      (c.empty_secondary_packaging_qty * (c.secondary_packaging_deposit_value || 0));
         });
         return total;
-    }, [pendingConsignments]);
+    }, [pendingItems]);
 
     // Check for late consignments
-    const lateConsignments = pendingConsignments.filter(c => {
+    const lateConsignments = pendingItems.filter(c => {
         if (!c.due_date) return false;
         return new Date(c.due_date) < new Date();
     });
@@ -55,8 +118,8 @@ export default function WarehousePackaging() {
                     <Card className="border-0 shadow-sm bg-white">
                         <CardContent className="p-4 flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500 font-medium">Consignes en cours</p>
-                                <p className="text-2xl font-bold text-gray-800">{pendingConsignments.length}</p>
+                                <p className="text-sm text-gray-500 font-medium">Emballages à retourner</p>
+                                <p className="text-2xl font-bold text-gray-800">{pendingItems.length}</p>
                             </div>
                             <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
                                 <Truck className="w-6 h-6 text-blue-600" />
@@ -105,7 +168,7 @@ export default function WarehousePackaging() {
                     </div>
                 )}
 
-                {/* Table des Consignes Fournisseurs */}
+                {/* Table des Emballages à retourner aux Fournisseurs */}
                 <Card className="border-0 shadow-sm overflow-hidden">
                     <CardHeader className="bg-white border-b">
                         <CardTitle className="text-lg text-gray-800">Emballages à retourner aux Fournisseurs</CardTitle>
@@ -117,14 +180,23 @@ export default function WarehousePackaging() {
                                 <TableHead>Date Réception</TableHead>
                                 <TableHead>Date Limite</TableHead>
                                 <TableHead>Produit</TableHead>
-                                <TableHead className="text-right">Bouteilles</TableHead>
-                                <TableHead className="text-right">Cageots</TableHead>
+                                <TableHead className="text-right">Reçu (B)</TableHead>
+                                <TableHead className="text-right">Retourné (B)</TableHead>
+                                <TableHead className="text-right">À rendre (B)</TableHead>
+                                <TableHead className="text-right">À rendre (C)</TableHead>
                                 <TableHead className="text-right">Valeur Risque</TableHead>
                                 <TableHead>Statut</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {pendingConsignments.map(item => {
+                            {isLoading && (
+                                <TableRow>
+                                    <TableCell colSpan={10} className="text-center py-8 text-gray-400">
+                                        Chargement...
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            {!isLoading && pendingItems.map(item => {
                                 const isItemLate = item.due_date && new Date(item.due_date) < new Date();
                                 const daysLeft = item.due_date ? differenceInDays(new Date(item.due_date), new Date()) : null;
                                 const itemRisk = (item.empty_packaging_qty * (item.packaging_deposit_value || 0)) +
@@ -134,17 +206,23 @@ export default function WarehousePackaging() {
                                     <TableRow key={item.id} className={isItemLate ? 'bg-red-50/50 hover:bg-red-50' : ''}>
                                         <TableCell className="font-bold">{item.entity_name}</TableCell>
                                         <TableCell className="whitespace-nowrap">
-                                            {format(new Date(item.created_at), 'dd MMM yyyy', { locale: fr })}
+                                            {item.created_at ? format(new Date(item.created_at), 'dd MMM yyyy', { locale: fr }) : '-'}
                                         </TableCell>
                                         <TableCell className={`whitespace-nowrap font-medium ${isItemLate ? 'text-red-600' : ''}`}>
                                             {item.due_date ? format(new Date(item.due_date), 'dd MMM yyyy', { locale: fr }) : 'Non défini'}
                                             {daysLeft !== null && daysLeft > 0 && <span className="text-xs text-gray-500 ml-2">({daysLeft}j)</span>}
                                         </TableCell>
                                         <TableCell className="font-medium">{item.product_name}</TableCell>
-                                        <TableCell className="text-right font-mono font-medium text-purple-700">
+                                        <TableCell className="text-right font-mono text-sm text-gray-500">
+                                            {item.received_bottles > 0 ? `${item.received_bottles}` : '-'}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono text-sm text-green-600">
+                                            {item.returned_bottles > 0 ? `${item.returned_bottles}` : '-'}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono font-bold text-purple-700">
                                             {item.empty_packaging_qty > 0 ? `${item.empty_packaging_qty} U` : '-'}
                                         </TableCell>
-                                        <TableCell className="text-right font-mono font-medium text-indigo-700">
+                                        <TableCell className="text-right font-mono font-bold text-indigo-700">
                                             {item.empty_secondary_packaging_qty > 0 ? `${item.empty_secondary_packaging_qty} C` : '-'}
                                         </TableCell>
                                         <TableCell className="text-right font-bold text-orange-600">
@@ -160,9 +238,9 @@ export default function WarehousePackaging() {
                                     </TableRow>
                                 );
                             })}
-                            {pendingConsignments.length === 0 && (
+                            {!isLoading && pendingItems.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                    <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                                         Aucun emballage à retourner aux fournisseurs.
                                     </TableCell>
                                 </TableRow>

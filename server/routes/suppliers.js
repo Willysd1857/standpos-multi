@@ -34,6 +34,73 @@ router.get('/', requireAuth, async (req, res) => {
     }
 });
 
+// Obtenir tous les fournisseurs enrichis (dettes + emballages à rendre + échéances)
+router.get('/enriched', requireAuth, async (req, res) => {
+    try {
+        // 1. Fetch all suppliers
+        const { data: suppliers, error: suppErr } = await supabase
+            .from('suppliers')
+            .select('*')
+            .order('name');
+
+        if (suppErr) throw suppErr;
+
+        // 2. Fetch all unpaid/partially-paid purchase groups to get due dates
+        const { data: purchaseGroups, error: pgErr } = await supabase
+            .from('purchase_groups')
+            .select('id, supplier_id, supplier_name, due_date, debt_amount, total_amount, paid_amount, status, created_at')
+            .gt('debt_amount', 0)
+            .order('due_date', { ascending: true });
+
+        if (pgErr) throw pgErr;
+
+        // 3. Group purchase groups by supplier_id and find earliest due_date
+        const supplierDueDates = {};
+        for (const pg of purchaseGroups || []) {
+            if (!pg.supplier_id) continue;
+            if (!supplierDueDates[pg.supplier_id]) {
+                supplierDueDates[pg.supplier_id] = {
+                    earliest_due_date: null,
+                    total_outstanding_debt: 0,
+                    unpaid_groups_count: 0
+                };
+            }
+            const entry = supplierDueDates[pg.supplier_id];
+            entry.total_outstanding_debt += Number(pg.debt_amount) || 0;
+            entry.unpaid_groups_count += 1;
+
+            // Find earliest due_date (only consider non-null dates)
+            if (pg.due_date) {
+                const pgDate = new Date(pg.due_date);
+                if (!entry.earliest_due_date || pgDate < new Date(entry.earliest_due_date)) {
+                    entry.earliest_due_date = pg.due_date;
+                }
+            }
+        }
+
+        // 4. Enrich suppliers with packaging outstanding and due dates
+        const enriched = (suppliers || []).map(sup => {
+            const dueInfo = supplierDueDates[sup.id] || {};
+            const outstandingBottles = Number(sup.outstanding_bottles) || 0;
+            const outstandingCrates = Number(sup.outstanding_crates) || 0;
+
+            return {
+                ...sup,
+                outstanding_bottles: outstandingBottles,
+                outstanding_crates: outstandingCrates,
+                earliest_due_date: dueInfo.earliest_due_date || null,
+                total_outstanding_debt: dueInfo.total_outstanding_debt || 0,
+                unpaid_groups_count: dueInfo.unpaid_groups_count || 0
+            };
+        });
+
+        res.json(enriched);
+    } catch (error) {
+        console.error('❌ Erreur GET /suppliers/enriched:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Obtenir un fournisseur spécifique avec ses transactions
 router.get('/:id', requireAuth, async (req, res) => {
     try {
