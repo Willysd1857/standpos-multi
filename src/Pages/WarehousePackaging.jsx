@@ -144,6 +144,7 @@ export default function WarehousePackaging() {
             product_id: data.product_id,
             empty_qty: data.empty_qty,
             empty_secondary_qty: data.empty_secondary_qty,
+            location_id: data.location_id,
         }),
         onSuccess: (result) => {
             const refund = result?.refundValue || 0;
@@ -198,6 +199,7 @@ export default function WarehousePackaging() {
             product_id: returnItem.product_id,
             empty_qty: bQty,
             empty_secondary_qty: cQty,
+            location_id: returnLocationId,
         });
     };
 

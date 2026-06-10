@@ -22,6 +22,25 @@ const requireAdminLocal = (req, res, next) => {
     }
 };
 
+// Auth for adjust-packaging: allow admin OR stock_manager at this specific location
+const requireAuthForPackagingAdjust = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'No token provided' });
+    try {
+        const decoded = jwt.verify(authHeader.substring(7), JWT_SECRET);
+        const locationId = req.params.id;
+        const isAdmin = decoded.role === 'admin';
+        const isManagerAtLocation = (decoded.role === 'stock_manager' || decoded.role === 'store_manager') && decoded.location_id === locationId;
+        if (!isAdmin && !isManagerAtLocation) {
+            return res.status(403).json({ error: 'Accès non autorisé pour cet emplacement.' });
+        }
+        req.user = decoded;
+        next();
+    } catch (e) {
+        return res.status(401).json({ error: 'Invalid token' });
+    }
+};
+
 // Obtenir tous les emplacements
 router.get('/', async (req, res) => {
     try {
@@ -138,8 +157,6 @@ router.get('/:id/packaging-stock', async (req, res) => {
             },
             { empty_bottles: 0, empty_crates: 0 }
         );
-
-        console.log('packaging-stock check:', { allProductIds: [...allProductIds], itemsLength: items.length, productsMapKeys: Object.keys(productsMap) });
 
         res.json({ location: loc, items, totals });
     } catch (error) {
@@ -274,8 +291,8 @@ router.delete('/:id', requireAdminLocal, async (req, res) => {
     }
 });
 
-// Ajuster le stock d'emballages vides d'un emplacement (Admin only)
-router.post('/:id/adjust-packaging', requireAdminLocal, async (req, res) => {
+// Ajuster le stock d'emballages vides d'un emplacement (Admin ou responsable de l'emplacement)
+router.post('/:id/adjust-packaging', requireAuthForPackagingAdjust, async (req, res) => {
     try {
         const locationId = req.params.id;
         const user = req.user;

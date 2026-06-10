@@ -754,8 +754,6 @@ router.post('/verify-reception', async (req, res) => {
         if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: 'Aucun emballage à vérifier.' });
         }
-        console.log("=== VERIFY RECEPTION PAYLOAD ===");
-        console.log(JSON.stringify(req.body, null, 2));
 
 
         // Fetch purchase group to know the location (where the stock was received)
@@ -968,11 +966,9 @@ router.post('/verify-reception', async (req, res) => {
                 }
 
                 // 4. Traiter le DÉFICIT = CONSIGNE AUTOMATIQUE
-                console.log(`[consign] emptyB=${emptyB} emptyC=${emptyC} exchangeB=${exchangeB} exchangeC=${exchangeC} consignB=${consignB} consignC=${consignC}`);
                 if (consignB > 0 || consignC > 0) {
                     // Créer la consigne
                     const consignmentId = uuidv4();
-                    console.log(`[consign] Inserting consignment: product=${product.name}, B=${consignB}, C=${consignC}, supplier=${supplier_id}`);
                     const { error: consErr } = await supabase
                         .from('packaging_consignments')
                         .insert({

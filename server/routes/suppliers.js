@@ -326,16 +326,22 @@ router.post('/:id/return-packaging', requireAuth, async (req, res) => {
         if (!locationId && req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Emplacement requis pour effectuer un retour.' });
         }
+        if (!locationId) {
+            return res.status(400).json({ error: 'Veuillez sélectionner un emplacement.' });
+        }
 
         // Vérifier le stock de consignes à cet emplacement
         const { data: stock } = await supabase.from('stock_by_location')
             .select('*')
             .eq('location_id', locationId)
             .eq('product_id', product_id)
-            .single();
+            .maybeSingle();
 
-        if (!stock || stock.empty_packaging_qty < empty_qty || stock.empty_secondary_packaging_qty < empty_secondary_qty) {
-            return res.status(400).json({ error: 'Stock d\'emballages vides insuffisant à cet emplacement.' });
+        const currentEmptyQty = stock?.empty_packaging_qty || 0;
+        const currentEmptySecQty = stock?.empty_secondary_packaging_qty || 0;
+
+        if (!stock || currentEmptyQty < empty_qty || currentEmptySecQty < empty_secondary_qty) {
+            return res.status(400).json({ error: `Stock d'emballages vides insuffisant à cet emplacement. Disponible: ${currentEmptyQty} bouteilles, ${currentEmptySecQty} cageots.` });
         }
 
         // Obtenir les valeurs des consignes via le produit
