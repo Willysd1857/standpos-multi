@@ -476,10 +476,13 @@ export default function Purchases() {
                     onVerified={() => {
                         setShowVerification(false);
                         if (receptionTarget) {
-                            // After reception: refresh stock, locations, and the list of pending groups
+                            // After reception: refresh stock, locations, packaging, suppliers and pending groups
                             queryClient.invalidateQueries({ queryKey: ['purchase-groups'] });
                             queryClient.invalidateQueries({ queryKey: ['products'] });
                             queryClient.invalidateQueries({ queryKey: ['locations'] });
+                            queryClient.invalidateQueries({ queryKey: ['suppliers-enriched'] });
+                            queryClient.invalidateQueries({ queryKey: ['supplier-outstanding'] });
+                            queryClient.invalidateQueries({ queryKey: ['packaging_consignments'] });
                             setReceptionTarget(null);
                             toast.success('Réception validée. Le stock a été ajouté.');
                         } else {

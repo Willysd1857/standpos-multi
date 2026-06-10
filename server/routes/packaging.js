@@ -279,7 +279,12 @@ router.get('/consignments', async (req, res) => {
 
         const { data: consignments, error } = await query;
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Erreur GET /packaging/consignments:', error.message, error);
+            throw error;
+        }
+
+        console.log('📋 [consignments] Found:', consignments?.length || 0, 'entity_type:', entity_type || 'all');
         res.json(consignments || []);
     } catch (error) {
         console.error('❌ Erreur GET /packaging/consignments:', error);
@@ -299,7 +304,15 @@ router.get('/supplier-outstanding', async (req, res) => {
             .eq('entity_type', 'supplier')
             .in('status', ['pending', 'partial']);
 
-        if (consErr) throw consErr;
+        if (consErr) {
+            console.error('❌ Erreur fetch consignments for supplier-outstanding:', consErr.message, consErr);
+            throw consErr;
+        }
+
+        console.log('📋 [supplier-outstanding] Consignments found:', consignments?.length || 0);
+        for (const c of consignments || []) {
+            console.log(`  → ${c.entity_name} (${c.entity_id}): ${c.product_name} qty=${c.empty_packaging_qty} status=${c.status}`);
+        }
 
         // Group by supplier+product, summing outstanding quantities
         const outstanding = {};
@@ -426,6 +439,11 @@ router.get('/supplier-outstanding', async (req, res) => {
 
         // Sort by most recent first
         result.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+        console.log('📊 [supplier-outstanding] Final result:', result.length, 'items');
+        for (const r of result) {
+            console.log(`  → ${r.entity_name}: ${r.empty_packaging_qty} bottles, ${r.empty_secondary_packaging_qty} crates`);
+        }
 
         res.json(result);
     } catch (error) {
@@ -827,6 +845,7 @@ router.post('/verify-reception', async (req, res) => {
         }
 
         const results = [];
+        const consignmentErrors = [];
         let totalBottlesReceived = 0;
         let totalCratesReceived = 0;
         let totalBottlesBroken = 0;
@@ -918,11 +937,16 @@ router.post('/verify-reception', async (req, res) => {
 
             // ── CONSIGNMENT: received empty packaging = debt to return ──
             if (emptyB > 0 || emptyC > 0) {
+                if (!supplier_id || supplier_id === 'unknown') {
+                    console.error('❌ supplier_id manquant ou "unknown" lors de la réception. supplier_id:', supplier_id, 'purchase_id:', purchase_id);
+                }
+
                 // 1. Create packaging_consignments record (pending return)
-                const { error: consErr } = await supabase
+                const consignmentId = uuidv4();
+                const { data: consData, error: consErr } = await supabase
                     .from('packaging_consignments')
                     .insert({
-                        id: uuidv4(),
+                        id: consignmentId,
                         location_id: purchaseLocationId,
                         entity_type: 'supplier',
                         entity_id: supplier_id || 'unknown',
@@ -937,35 +961,65 @@ router.post('/verify-reception', async (req, res) => {
                         source_transaction_id: purchase_id || null,
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
+                    })
+                    .select('id')
+                    .maybeSingle();
+                if (consErr) {
+                    console.error('❌ ERREUR consignment INSERT:', consErr.message, consErr, {
+                        supplier_id, purchase_id, product_id: item.product_id, emptyB, emptyC
                     });
-                if (consErr) console.warn('⚠️ consignment insert:', consErr.message);
+                    consignmentErrors.push({
+                        product_id: item.product_id,
+                        error: consErr.message,
+                        supplier_id,
+                        emptyB,
+                        emptyC
+                    });
+                } else {
+                    console.log('✅ Consignment created:', consData?.id, 'supplier:', supplier_id, 'bottles:', emptyB, 'crates:', emptyC);
+                }
 
                 // 2. Increment suppliers.outstanding_bottles/crates
                 if (supplier_id && supplier_id !== 'unknown') {
-                    const { data: supplier } = await supabase
+                    const { data: supplier, error: supSelErr } = await supabase
                         .from('suppliers')
                         .select('id, outstanding_bottles, outstanding_crates')
                         .eq('id', supplier_id)
                         .maybeSingle();
+                    if (supSelErr) {
+                        console.error('❌ ERREUR supplier SELECT:', supSelErr.message, 'supplier_id:', supplier_id);
+                    }
                     if (supplier) {
-                        await supabase.from('suppliers').update({
-                            outstanding_bottles: (Number(supplier.outstanding_bottles) || 0) + emptyB,
-                            outstanding_crates: (Number(supplier.outstanding_crates) || 0) + emptyC,
+                        const newBottles = (Number(supplier.outstanding_bottles) || 0) + emptyB;
+                        const newCrates = (Number(supplier.outstanding_crates) || 0) + emptyC;
+                        const { error: supUpdErr } = await supabase.from('suppliers').update({
+                            outstanding_bottles: newBottles,
+                            outstanding_crates: newCrates,
                             updated_at: new Date().toISOString()
                         }).eq('id', supplier_id);
+                        if (supUpdErr) {
+                            console.error('❌ ERREUR supplier UPDATE outstanding:', supUpdErr.message, 'supplier_id:', supplier_id);
+                        } else {
+                            console.log('✅ Supplier outstanding updated:', supplier_id, 'bottles:', newBottles, 'crates:', newCrates);
+                        }
+                    } else {
+                        console.error('❌ Supplier NOT FOUND for id:', supplier_id);
                     }
                 }
 
                 // 3. Update product empty packaging counters
                 const oldB = Number(product.empty_packaging_qty) || 0;
                 const oldC = Number(product.empty_secondary_packaging_qty) || 0;
-                await supabase.from('products').update({
+                const { error: prodUpdErr } = await supabase.from('products').update({
                     empty_packaging_qty: oldB + emptyB,
                     empty_secondary_packaging_qty: oldC + emptyC
                 }).eq('id', item.product_id);
+                if (prodUpdErr) {
+                    console.error('❌ ERREUR product empty_packaging UPDATE:', prodUpdErr.message, 'product_id:', item.product_id);
+                }
 
                 // 4. Record packaging_movements
-                await supabase.from('packaging_movements').insert({
+                const { error: movErr } = await supabase.from('packaging_movements').insert({
                     id: uuidv4(),
                     location_id: purchaseLocationId,
                     product_id: item.product_id,
@@ -978,6 +1032,9 @@ router.post('/verify-reception', async (req, res) => {
                     notes: `Réception achat — ${emptyB} bouteille(s), ${emptyC} cageot(s) vide(s) reçu(s)${item.notes ? ' — ' + item.notes : ''}`,
                     created_at: new Date().toISOString()
                 });
+                if (movErr) {
+                    console.error('❌ ERREUR packaging_movements INSERT:', movErr.message, movErr);
+                }
 
                 // 5. Update stock_by_location empty packaging counters
                 if (purchaseLocationId) {
@@ -988,13 +1045,14 @@ router.post('/verify-reception', async (req, res) => {
                         .eq('product_id', item.product_id)
                         .maybeSingle();
                     if (existingStock) {
-                        await supabase.from('stock_by_location').update({
+                        const { error: sblErr } = await supabase.from('stock_by_location').update({
                             empty_packaging_qty: (Number(existingStock.empty_packaging_qty) || 0) + emptyB,
                             empty_secondary_packaging_qty: (Number(existingStock.empty_secondary_packaging_qty) || 0) + emptyC,
                             updated_at: new Date().toISOString()
                         }).eq('id', existingStock.id);
+                        if (sblErr) console.error('❌ ERREUR stock_by_location UPDATE:', sblErr.message);
                     } else {
-                        await supabase.from('stock_by_location').insert({
+                        const { error: sblInsErr } = await supabase.from('stock_by_location').insert({
                             id: uuidv4(),
                             location_id: purchaseLocationId,
                             product_id: item.product_id,
@@ -1002,6 +1060,7 @@ router.post('/verify-reception', async (req, res) => {
                             empty_packaging_qty: emptyB,
                             empty_secondary_packaging_qty: emptyC
                         });
+                        if (sblInsErr) console.error('❌ ERREUR stock_by_location INSERT:', sblInsErr.message);
                     }
                 }
             }
@@ -1105,13 +1164,14 @@ router.post('/verify-reception', async (req, res) => {
             success: true,
             items: results,
             reception_updated: receptionUpdated,
+            consignment_errors: consignmentErrors.length > 0 ? consignmentErrors : undefined,
             totals: {
                 bottles_returned: totalBottlesReceived,
                 crates_returned: totalCratesReceived,
                 bottles_broken: totalBottlesBroken,
                 crates_broken: totalCratesBroken,
-                consigned: totalConsigned,
-                credit: totalCredit,
+                consigned: totalBottlesReceived + totalCratesReceived,
+                credit: totalDepositValue,
                 deposit_value: totalDepositValue
             }
         });

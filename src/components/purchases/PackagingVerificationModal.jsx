@@ -72,8 +72,12 @@ export default function PackagingVerificationModal({ open, onClose, purchaseGrou
         mutationFn: async (data) => {
             return base44.entities.Packaging.verifyReception(data);
         },
-        onSuccess: () => {
-            toast.success('Réception enregistrée avec succès !');
+        onSuccess: (response) => {
+            if (response?.consignment_errors?.length > 0) {
+                toast.warning(`Réception enregistrée mais ${response.consignment_errors.length} emballage(s) n'ont pas pu être enregistré(s) en consigne. Vérifiez les logs serveur.`, { duration: 8000 });
+            } else {
+                toast.success('Réception enregistrée avec succès !');
+            }
             onVerified();
         },
         onError: (error) => {

@@ -78,17 +78,86 @@ router.get('/enriched', requireAuth, async (req, res) => {
             }
         }
 
-        // 4. Enrich suppliers with packaging outstanding and due dates
+        // 4. Fallback: compute outstanding from packaging_consignments if suppliers.outstanding_* are zero
+        //    This handles cases where verify-reception updated consignments but suppliers columns were not synced.
+        const supplierConsignmentTotals = {};
+        const { data: supplierConsignments, error: consErr } = await supabase
+            .from('packaging_consignments')
+            .select('entity_id, entity_name, empty_packaging_qty, empty_secondary_packaging_qty, status, due_date')
+            .eq('entity_type', 'supplier')
+            .in('status', ['pending', 'partial']);
+
+        if (consErr) {
+            console.error('❌ Erreur fetch consignments for enriched:', consErr.message, consErr);
+        } else {
+            console.log('📋 Consignments found for suppliers:', supplierConsignments?.length || 0);
+        }
+
+        for (const c of supplierConsignments || []) {
+            if (!c.entity_id) continue;
+            if (!supplierConsignmentTotals[c.entity_id]) {
+                supplierConsignmentTotals[c.entity_id] = {
+                    outstanding_bottles: 0,
+                    outstanding_crates: 0,
+                    earliest_due_date: null
+                };
+            }
+            supplierConsignmentTotals[c.entity_id].outstanding_bottles += Number(c.empty_packaging_qty) || 0;
+            supplierConsignmentTotals[c.entity_id].outstanding_crates += Number(c.empty_secondary_packaging_qty) || 0;
+            if (c.due_date) {
+                const consDate = new Date(c.due_date);
+                if (!supplierConsignmentTotals[c.entity_id].earliest_due_date ||
+                    consDate < new Date(supplierConsignmentTotals[c.entity_id].earliest_due_date)) {
+                    supplierConsignmentTotals[c.entity_id].earliest_due_date = c.due_date;
+                }
+            }
+        }
+
+        console.log('📊 Supplier consignment totals:', JSON.stringify(supplierConsignmentTotals, null, 2));
+
+        // 5. Enrich suppliers with packaging outstanding and due dates
         const enriched = (suppliers || []).map(sup => {
             const dueInfo = supplierDueDates[sup.id] || {};
-            const outstandingBottles = Number(sup.outstanding_bottles) || 0;
-            const outstandingCrates = Number(sup.outstanding_crates) || 0;
+            const consignmentInfo = supplierConsignmentTotals[sup.id] || {};
+
+            // Use the HIGHER value between suppliers.outstanding_* and consignments aggregate
+            // to handle drift / partial updates
+            const dbBottles = Number(sup.outstanding_bottles) || 0;
+            const dbCrates = Number(sup.outstanding_crates) || 0;
+            const consBottles = consignmentInfo.outstanding_bottles || 0;
+            const consCrates = consignmentInfo.outstanding_crates || 0;
+
+            const outstandingBottles = Math.max(dbBottles, consBottles);
+            const outstandingCrates = Math.max(dbCrates, consCrates);
+
+            if (consBottles > 0 || consCrates > 0) {
+                console.log(`🔍 Supplier ${sup.name} (${sup.id}): db=${dbBottles}/${dbCrates} cons=${consBottles}/${consCrates} → final=${outstandingBottles}/${outstandingCrates}`);
+            }
+
+            // Also sync the suppliers table if consignments have higher values
+            if (consBottles > dbBottles || consCrates > dbCrates) {
+                supabase.from('suppliers').update({
+                    outstanding_bottles: consBottles,
+                    outstanding_crates: consCrates,
+                    updated_at: new Date().toISOString()
+                }).eq('id', sup.id).then(({ error }) => {
+                    if (error) console.warn('⚠️ suppliers.outstanding sync:', error.message);
+                });
+            }
+
+            // Pick earliest due date from both purchase groups and consignments
+            let earliestDue = dueInfo.earliest_due_date || null;
+            if (consignmentInfo.earliest_due_date) {
+                if (!earliestDue || new Date(consignmentInfo.earliest_due_date) < new Date(earliestDue)) {
+                    earliestDue = consignmentInfo.earliest_due_date;
+                }
+            }
 
             return {
                 ...sup,
                 outstanding_bottles: outstandingBottles,
                 outstanding_crates: outstandingCrates,
-                earliest_due_date: dueInfo.earliest_due_date || null,
+                earliest_due_date: earliestDue,
                 total_outstanding_debt: dueInfo.total_outstanding_debt || 0,
                 unpaid_groups_count: dueInfo.unpaid_groups_count || 0
             };
