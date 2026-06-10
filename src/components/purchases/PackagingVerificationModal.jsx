@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Package, CheckCircle2, AlertCircle, ArrowDownRight, Scale } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { base44, fetchAPI } from '@/api/base44Client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 function buildInitialData(purchaseGroup) {
     if (!purchaseGroup || !Array.isArray(purchaseGroup.items)) return {};
@@ -52,21 +53,53 @@ export default function PackagingVerificationModal({ open, onClose, purchaseGrou
         }
     }, [open]);
 
-    // Calculs en temps réel : total emballages reçus = consignes à retourner
+    const { user } = useAuth();
+
+    // Fetch stock for current location to show available empty packagings
+    const { data: locationStockData } = useQuery({
+        queryKey: ['location-packaging-stock', purchaseGroup?.location_id || user?.location_id],
+        queryFn: () => fetchAPI(`/locations/${purchaseGroup?.location_id || user?.location_id}/packaging-stock`),
+        enabled: !!(purchaseGroup?.location_id || user?.location_id) && open
+    });
+    
+    const stockMap = useMemo(() => {
+        const m = new Map();
+        if (locationStockData?.items) {
+            for (const s of locationStockData.items) {
+                m.set(s.product_id, {
+                    b: Number(s.empty_packaging_qty) || 0,
+                    c: Number(s.empty_secondary_packaging_qty) || 0
+                });
+            }
+        }
+        return m;
+    }, [locationStockData]);
+
+    // Calculs en temps réel : total emballages reçus = échange immédiat + déficit (consigne)
     const gapSummary = useMemo(() => {
         const items = Object.values(packagingData);
         let totalOrdered = 0;
         let totalReceivedEmpty = 0;
+        let totalExchange = 0;
+        let totalConsign = 0;
 
         for (const item of items) {
             const ordered = Number(item.ordered_quantity) || 0;
             const received = Number(item.received_empty_bottles) || 0;
+            
+            const stock = stockMap.get(item.product_id);
+            const availableB = stock ? stock.b : 0;
+            const exchangeB = Math.min(availableB, received);
+            const consignB = received - exchangeB;
+
             totalOrdered += ordered;
             totalReceivedEmpty += received;
+            totalExchange += exchangeB;
+            totalConsign += consignB;
         }
 
-        return { totalOrdered, totalReceivedEmpty };
-    }, [packagingData]);
+        return { totalOrdered, totalReceivedEmpty, totalExchange, totalConsign };
+    }, [packagingData, stockMap]);
 
     const verificationMutation = useMutation({
         mutationFn: async (data) => {
@@ -153,29 +186,40 @@ export default function PackagingVerificationModal({ open, onClose, purchaseGrou
 
                     {/* Résumé de l'échange */}
                     {gapSummary.totalReceivedEmpty > 0 && (
-                        <div className="rounded-xl border-2 border-amber-300 bg-amber-50/50 p-4">
+                        <div className="rounded-xl border-2 border-indigo-200 bg-indigo-50/50 p-4">
                             <div className="flex items-center gap-2 mb-3">
-                                <Scale className="w-5 h-5 text-amber-600" />
-                                <h4 className="font-bold text-gray-800">Résumé de la réception</h4>
+                                <Scale className="w-5 h-5 text-indigo-600" />
+                                <h4 className="font-bold text-gray-800">Résumé de l'échange</h4>
                             </div>
-                            <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div className="grid grid-cols-4 gap-4 text-sm">
                                 <div className="text-center">
-                                    <p className="text-gray-500">Produits reçus</p>
-                                    <p className="text-lg font-bold text-indigo-700">{gapSummary.totalOrdered}</p>
+                                    <p className="text-gray-500 text-xs">Produits reçus</p>
+                                    <p className="text-lg font-bold text-gray-700">{gapSummary.totalOrdered}</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-gray-500">Bouteilles vides reçues</p>
-                                    <p className="text-lg font-bold text-amber-700">{gapSummary.totalReceivedEmpty}</p>
+                                    <p className="text-gray-500 text-xs">Emballages réclamés</p>
+                                    <p className="text-lg font-bold text-indigo-700">{gapSummary.totalReceivedEmpty}</p>
                                 </div>
-                                <div className="text-center">
-                                    <p className="text-gray-500">Consignes à retourner</p>
-                                    <p className="text-lg font-bold text-amber-700">{gapSummary.totalReceivedEmpty}</p>
+                                <div className="text-center bg-green-50 rounded-lg py-1 border border-green-100">
+                                    <p className="text-green-600 text-xs font-semibold">Échangés (stock)</p>
+                                    <p className="text-lg font-bold text-green-700">{gapSummary.totalExchange}</p>
+                                </div>
+                                <div className="text-center bg-amber-50 rounded-lg py-1 border border-amber-100">
+                                    <p className="text-amber-600 text-xs font-semibold">Déficit (consigné)</p>
+                                    <p className="text-lg font-bold text-amber-700">{gapSummary.totalConsign}</p>
                                 </div>
                             </div>
-                            <div className="mt-3 text-xs text-center">
-                                <span className="text-amber-700 font-medium">
-                                    ⚠️ {gapSummary.totalReceivedEmpty} bouteille(s) vide(s) reçue(s) du fournisseur — à retourner
-                                </span>
+                            <div className="mt-3 text-xs text-center flex items-center justify-center gap-2">
+                                {gapSummary.totalExchange > 0 && (
+                                    <span className="text-green-700 font-medium">
+                                        ✅ {gapSummary.totalExchange} emballage(s) échangé(s) depuis votre stock vide.
+                                    </span>
+                                )}
+                                {gapSummary.totalConsign > 0 && (
+                                    <span className="text-amber-700 font-medium">
+                                        ⚠️ {gapSummary.totalConsign} emballage(s) manquant(s) seront enregistrés en dette (consigne).
+                                    </span>
+                                )}
                             </div>
                         </div>
                     )}
@@ -219,37 +263,51 @@ export default function PackagingVerificationModal({ open, onClose, purchaseGrou
                                 </div>
 
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pl-8">
-                                    {/* Colonne 1 : Emballages vides REÇUS du fournisseur */}
+                                    {/* Colonne 1 : Emballages vides réclamés par fournisseur */}
                                     <div className="space-y-1">
-                                        <Label className="text-xs font-bold text-amber-700 flex items-center gap-1">
-                                            <ArrowDownRight className="w-3 h-3"/>
-                                            Bouteilles Vides Reçues
+                                        <Label className="text-xs font-bold text-indigo-700 flex items-center justify-between gap-1">
+                                            <span className="flex items-center gap-1">
+                                                <ArrowDownRight className="w-3 h-3"/>
+                                                Bouteilles Réclamées
+                                            </span>
                                         </Label>
-                                        <Input 
-                                            type="number" 
-                                            min="0" 
-                                            max={ordered + 100}
-                                            value={item.received_empty_bottles}
-                                            onChange={(e) => handleChange(item.product_id, 'received_empty_bottles', e.target.value)}
-                                            className="h-8 border-amber-300 focus-visible:ring-amber-500"
-                                            placeholder="0"
-                                        />
-                                        <p className="text-[10px] text-gray-400">Reçues du fournisseur (à retourner)</p>
+                                        <div className="relative">
+                                            <Input 
+                                                type="number" 
+                                                min="0" 
+                                                max={ordered + 100}
+                                                value={item.received_empty_bottles}
+                                                onChange={(e) => handleChange(item.product_id, 'received_empty_bottles', e.target.value)}
+                                                className="h-8 border-indigo-300 focus-visible:ring-indigo-500"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <div className="flex justify-between items-center text-[10px]">
+                                            <span className="text-gray-400">Emballages du fournisseur</span>
+                                            <span className="text-green-600 font-medium bg-green-50 px-1 rounded border border-green-100">Dispo: {stockMap.get(item.product_id)?.b || 0}</span>
+                                        </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <Label className="text-xs font-bold text-amber-700 flex items-center gap-1">
-                                            <ArrowDownRight className="w-3 h-3"/>
-                                            Cageots Vides Reçus
+                                        <Label className="text-xs font-bold text-indigo-700 flex items-center justify-between gap-1">
+                                            <span className="flex items-center gap-1">
+                                                <ArrowDownRight className="w-3 h-3"/>
+                                                Cageots Réclamés
+                                            </span>
                                         </Label>
-                                        <Input 
-                                            type="number" 
-                                            min="0"
-                                            value={item.received_empty_crates}
-                                            onChange={(e) => handleChange(item.product_id, 'received_empty_crates', e.target.value)}
-                                            className="h-8 border-amber-300 focus-visible:ring-amber-500"
-                                            placeholder="0"
-                                        />
-                                        <p className="text-[10px] text-gray-400">Reçus du fournisseur (à retourner)</p>
+                                        <div className="relative">
+                                            <Input 
+                                                type="number" 
+                                                min="0"
+                                                value={item.received_empty_crates}
+                                                onChange={(e) => handleChange(item.product_id, 'received_empty_crates', e.target.value)}
+                                                className="h-8 border-indigo-300 focus-visible:ring-indigo-500"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <div className="flex justify-between items-center text-[10px]">
+                                            <span className="text-gray-400">Emballages du fournisseur</span>
+                                            <span className="text-green-600 font-medium bg-green-50 px-1 rounded border border-green-100">Dispo: {stockMap.get(item.product_id)?.c || 0}</span>
+                                        </div>
                                     </div>
 
                                     {/* Colonne 2 : Casse */}
@@ -303,11 +361,16 @@ export default function PackagingVerificationModal({ open, onClose, purchaseGrou
                                     {/* Ligne de résumé par produit */}
                                     {ordered > 0 && (
                                         <div className={`col-span-2 md:col-span-3 p-2 rounded-lg text-xs font-medium ${
-                                            receivedEmpty > 0 ? 'bg-amber-50 text-amber-800 border border-amber-200' :
+                                            receivedEmpty > 0 ? 'bg-indigo-50 text-indigo-800 border border-indigo-200' :
                                             'bg-gray-50 text-gray-600 border border-gray-200'
                                         }`}>
-                                            <strong>{item.product_name}</strong> : {ordered} produit(s) reçu(s), {receivedEmpty} bouteille(s) vide(s) reçue(s) du fournisseur
-                                            {receivedEmpty > 0 && ` → ${receivedEmpty} consigne(s) à retourner`}
+                                            <strong>{item.product_name}</strong> : {ordered} produit(s) reçu(s), {receivedEmpty} emballage(s) réclamé(s).
+                                            {receivedEmpty > 0 && (() => {
+                                                const avail = stockMap.get(item.product_id)?.b || 0;
+                                                const exch = Math.min(avail, receivedEmpty);
+                                                const def = receivedEmpty - exch;
+                                                return ` → ${exch} échangé(s) du stock, ${def > 0 ? def + ' en dette (consigne)' : ''}`;
+                                            })()}
                                         </div>
                                     )}
 

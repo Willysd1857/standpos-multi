@@ -87,6 +87,7 @@ router.post('/wipe-data', async (req, res) => {
             'packaging_consignments',
             'stock_transfer_items',
             'stock_transfers',
+            'supplier_transactions',
             'losses_and_damages',
             'stock_by_location',
             'audit_logs'
@@ -123,25 +124,31 @@ router.post('/wipe-data', async (req, res) => {
             }
         }
 
-        // Reset customer credit status
+        // Reset customer credit status + packaging debt
         await supabase
             .from('customers')
-            .update({ unpaid_count: 0, is_blocked: false })
+            .update({ unpaid_count: 0, is_blocked: false, packaging_debt_bottles: 0, packaging_debt_crates: 0 })
             .not('id', 'is', null);
 
-        console.log(`[WipeData] Reset customer credit status`);
+        console.log(`[WipeData] Reset customer credit status + packaging debt`);
 
-        // Reset product stock + packaging counters
+        // Reset supplier debt + outstanding packaging
+        await supabase
+            .from('suppliers')
+            .update({ total_debt: 0, outstanding_bottles: 0, outstanding_crates: 0 })
+            .not('id', 'is', null);
+
+        console.log(`[WipeData] Reset supplier debt + outstanding packaging`);
+
+        // Reset product stock (packaging counts are computed from stock_by_location, not stored in products)
         await supabase
             .from('products')
             .update({
-                stock: 0,
-                empty_packaging_qty: 0,
-                empty_secondary_packaging_qty: 0
+                stock: 0
             })
             .not('id', 'is', null);
 
-        console.log(`[WipeData] Reset product stock + packaging counters`);
+        console.log(`[WipeData] Reset product stock`);
 
         // Create a new audit log
         createAuditLog(

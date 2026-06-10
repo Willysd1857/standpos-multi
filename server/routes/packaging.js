@@ -105,22 +105,12 @@ router.post('/customer-return', async (req, res) => {
             if (bReturn > 0 || cReturn > 0) affectedCustomers.add(c.entity_id);
         }
 
-        // 3. Increment empty stock (compteur global)
+        // 3. Fetch product info (for movement log)
         const { data: product } = await supabase
             .from('products')
-            .select('empty_packaging_qty, empty_secondary_packaging_qty, name, location_id')
+            .select('name, location_id')
             .eq('id', product_id)
             .maybeSingle();
-
-        if (product) {
-            await supabase
-                .from('products')
-                .update({
-                    empty_packaging_qty: (Number(product.empty_packaging_qty) || 0) + bottlesToReturn,
-                    empty_secondary_packaging_qty: (Number(product.empty_secondary_packaging_qty) || 0) + cratesToReturn
-                })
-                .eq('id', product_id);
-        }
 
         // ✅ AUGMENTER LE STOCK PHYSIQUE du Magasin (per-location)
         //    On prend la location de la première consigne affectée, ou à
@@ -485,14 +475,8 @@ router.post('/consignments/:id/return', async (req, res) => {
             updated_at: new Date().toISOString()
         }).eq('id', id);
 
-        // Increment empty stock (compteur global)
-        const { data: product } = await supabase.from('products').select('empty_packaging_qty, empty_secondary_packaging_qty, name').eq('id', consignment.product_id).single();
-        if (product) {
-            await supabase.from('products').update({
-                empty_packaging_qty: (Number(product.empty_packaging_qty) || 0) + bReturn,
-                empty_secondary_packaging_qty: (Number(product.empty_secondary_packaging_qty) || 0) + cReturn
-            }).eq('id', consignment.product_id);
-        }
+        // Fetch product name (for movement log)
+        const { data: product } = await supabase.from('products').select('name').eq('id', consignment.product_id).single();
 
         // ✅ AUGMENTER LE STOCK PHYSIQUE du Magasin (per-location)
         //    La consigne sortante avait été débitée du stock du Magasin à la
@@ -655,7 +639,7 @@ router.post('/consignments/:id/lost', async (req, res) => {
 // Declare broken empty packaging
 router.post('/breakage', async (req, res) => {
     try {
-        const { product_id, broken_bottles, broken_crates, reason } = req.body;
+        const { product_id, broken_bottles, broken_crates, reason, location_id: bodyLocationId } = req.body;
         const user = getUserFromRequest(req);
 
         const { data: product, error: prodErr } = await supabase.from('products').select('*').eq('id', product_id).single();
@@ -667,74 +651,49 @@ router.post('/breakage', async (req, res) => {
 
         if (bBreak <= 0 && cBreak <= 0) return res.status(400).json({ error: 'Quantité invalide' });
 
-        const oldBAvail = Number(product.empty_packaging_qty) || 0;
-        const oldCAvail = Number(product.empty_secondary_packaging_qty) || 0;
-        const newBAvail = Math.max(0, oldBAvail - bBreak);
-        const newCAvail = Math.max(0, oldCAvail - cBreak);
+        // Déterminer l'emplacement cible : location de l'utilisateur ou celle fournie par l'admin
+        const targetLocationId = user.location_id || bodyLocationId;
+        if (!targetLocationId) {
+            return res.status(400).json({ error: 'Veuillez sélectionner un emplacement pour la déclaration de casse.' });
+        }
 
-        // 1) Mise à jour du compteur global (admin / agrégat)
-        const { error: prodUpdErr } = await supabase.from('products').update({
-            empty_packaging_qty: newBAvail,
-            empty_secondary_packaging_qty: newCAvail
-        }).eq('id', product_id);
-        if (prodUpdErr) console.error('⚠️ products.update (breakage):', prodUpdErr.message);
+        // Mise à jour du stock PAR EMPLACEMENT (isolation stricte)
+        const { data: sbl } = await supabase
+            .from('stock_by_location')
+            .select('*')
+            .eq('location_id', targetLocationId)
+            .eq('product_id', product_id)
+            .maybeSingle();
 
-        // 2) Mise à jour du stock PAR EMPLACEMENT (ce que voit l'utilisateur)
-        //    Si l'utilisateur n'a pas de location_id (admin pur), on propage la
-        //    décrémentation à TOUTES les lignes stock_by_location du produit
-        //    pour rester cohérent avec l'agrégat global.
-        if (user.location_id) {
-            const { data: sbl } = await supabase
-                .from('stock_by_location')
-                .select('*')
-                .eq('location_id', user.location_id)
-                .eq('product_id', product_id)
-                .maybeSingle();
+        const tsNow = new Date().toISOString();
+        let beforeBottles = 0;
+        let beforeCrates = 0;
 
-            const tsNow = new Date().toISOString();
-            if (sbl) {
-                const { error: sblUpdErr } = await supabase.from('stock_by_location').update({
-                    empty_packaging_qty: Math.max(0, (Number(sbl.empty_packaging_qty) || 0) - bBreak),
-                    empty_secondary_packaging_qty: Math.max(0, (Number(sbl.empty_secondary_packaging_qty) || 0) - cBreak),
-                    updated_at: tsNow
-                }).eq('id', sbl.id);
-                if (sblUpdErr) console.error('⚠️ stock_by_location.update (breakage):', sblUpdErr.message);
-            } else {
-                // Création de la ligne (UPSERT) avec compteurs initiaux à 0.
-                // La casse est déjà appliquée sur le compteur global `products`,
-                // ici on initialise la ligne per-location à 0 pour rester
-                // cohérent (le Math.max ci-dessous ne peut pas être négatif).
-                const { error: sblInsErr } = await supabase.from('stock_by_location').insert({
-                    id: uuidv4(),
-                    location_id: user.location_id,
-                    product_id: product_id,
-                    quantity: 0,
-                    empty_packaging_qty: Math.max(0, 0 - bBreak),
-                    empty_secondary_packaging_qty: Math.max(0, 0 - cBreak),
-                    updated_at: tsNow
-                });
-                if (sblInsErr) console.error('⚠️ stock_by_location.insert (breakage):', sblInsErr.message);
-            }
+        if (sbl) {
+            beforeBottles = Number(sbl.empty_packaging_qty) || 0;
+            beforeCrates = Number(sbl.empty_secondary_packaging_qty) || 0;
+            const { error: sblUpdErr } = await supabase.from('stock_by_location').update({
+                empty_packaging_qty: Math.max(0, beforeBottles - bBreak),
+                empty_secondary_packaging_qty: Math.max(0, beforeCrates - cBreak),
+                updated_at: tsNow
+            }).eq('id', sbl.id);
+            if (sblUpdErr) console.error('⚠️ stock_by_location.update (breakage):', sblUpdErr.message);
         } else {
-            // Admin sans location_id : décrémente proportionnellement chaque ligne
-            // existante (ou crée une ligne à 0 si absente) pour ce produit.
-            const { data: allSbl } = await supabase
-                .from('stock_by_location')
-                .select('*')
-                .eq('product_id', product_id);
-            const tsNow = new Date().toISOString();
-            for (const row of (allSbl || [])) {
-                await supabase.from('stock_by_location').update({
-                    empty_packaging_qty: Math.max(0, (Number(row.empty_packaging_qty) || 0) - bBreak),
-                    empty_secondary_packaging_qty: Math.max(0, (Number(row.empty_secondary_packaging_qty) || 0) - cBreak),
-                    updated_at: tsNow
-                }).eq('id', row.id);
-            }
+            const { error: sblInsErr } = await supabase.from('stock_by_location').insert({
+                id: uuidv4(),
+                location_id: targetLocationId,
+                product_id: product_id,
+                quantity: 0,
+                empty_packaging_qty: Math.max(0, 0 - bBreak),
+                empty_secondary_packaging_qty: Math.max(0, 0 - cBreak),
+                updated_at: tsNow
+            });
+            if (sblInsErr) console.error('⚠️ stock_by_location.insert (breakage):', sblInsErr.message);
         }
 
         await supabase.from('packaging_movements').insert({
             id: uuidv4(),
-            location_id: user.location_id || null,
+            location_id: targetLocationId,
             product_id: product_id,
             product_name: product.name,
             movement_type: 'breakage',
@@ -758,15 +717,16 @@ router.post('/breakage', async (req, res) => {
                 product_name: product.name,
                 broken_bottles: bBreak,
                 broken_crates: cBreak,
-                bottles_before: oldBAvail,
-                bottles_after: newBAvail,
-                crates_before: oldCAvail,
-                crates_after: newCAvail,
+                bottles_before: beforeBottles,
+                bottles_after: Math.max(0, beforeBottles - bBreak),
+                crates_before: beforeCrates,
+                crates_after: Math.max(0, beforeCrates - cBreak),
                 reason: reason || 'Déclaration de casse',
-                financial_loss: financialLoss
+                financial_loss: financialLoss,
+                location_id: targetLocationId
             },
             req.ip,
-            user.location_id
+            targetLocationId
         );
 
         res.json({ success: true, financialLoss });
@@ -851,6 +811,11 @@ router.post('/verify-reception', async (req, res) => {
         let totalBottlesBroken = 0;
         let totalCratesBroken = 0;
         let totalDepositValue = 0;
+        
+        let totalBottlesExchanged = 0;
+        let totalCratesExchanged = 0;
+        let totalBottlesConsigned = 0;
+        let totalCratesConsigned = 0;
 
         // 1. ALWAYS add the full product quantity to destination stock for each order item
         if (purchaseGroup && purchaseGroup.reception_status !== 'received') {
@@ -935,91 +900,124 @@ router.post('/verify-reception', async (req, res) => {
             // Skip if nothing to process
             if (emptyB <= 0 && emptyC <= 0 && brokenB <= 0 && brokenC <= 0) continue;
 
-            // ── CONSIGNMENT: received empty packaging = debt to return ──
+            // ── AUTOMATIC EXCHANGE & CONSIGNMENT ──
             if (emptyB > 0 || emptyC > 0) {
                 if (!supplier_id || supplier_id === 'unknown') {
                     console.error('❌ supplier_id manquant ou "unknown" lors de la réception. supplier_id:', supplier_id, 'purchase_id:', purchase_id);
                 }
 
-                // 1. Create packaging_consignments record (pending return)
-                const consignmentId = uuidv4();
-                const { data: consData, error: consErr } = await supabase
-                    .from('packaging_consignments')
-                    .insert({
-                        id: consignmentId,
+                // 1. Lire le stock vide disponible
+                let availableB = 0;
+                let availableC = 0;
+                let existingStock = null;
+
+                if (purchaseLocationId) {
+                    const { data: sblData } = await supabase
+                        .from('stock_by_location')
+                        .select('*')
+                        .eq('location_id', purchaseLocationId)
+                        .eq('product_id', item.product_id)
+                        .maybeSingle();
+                    if (sblData) {
+                        existingStock = sblData;
+                        availableB = Number(sblData.empty_packaging_qty) || 0;
+                        availableC = Number(sblData.empty_secondary_packaging_qty) || 0;
+                    }
+                }
+
+                // 2. Calculer l'échange immédiat et le déficit
+                const exchangeB = Math.min(availableB, emptyB);
+                const exchangeC = Math.min(availableC, emptyC);
+                
+                const consignB = emptyB - exchangeB;
+                const consignC = emptyC - exchangeC;
+
+                // On enrichit l'item pour le retour au frontend et le calcul de la dépense
+                item.exchange_bottles = exchangeB;
+                item.exchange_crates = exchangeC;
+                item.consign_bottles = consignB;
+                item.consign_crates = consignC;
+
+                // 3. Traiter l'ÉCHANGE (Déduction du stock physique d'emballages vides)
+                if (exchangeB > 0 || exchangeC > 0) {
+                    // Enregistrer le mouvement de sortie (retour fournisseur)
+                    await supabase.from('packaging_movements').insert({
+                        id: uuidv4(),
                         location_id: purchaseLocationId,
-                        entity_type: 'supplier',
-                        entity_id: supplier_id || 'unknown',
-                        entity_name: supplier_name || 'Fournisseur inconnu',
                         product_id: item.product_id,
                         product_name: product.name,
-                        empty_packaging_qty: emptyB,
-                        empty_secondary_packaging_qty: emptyC,
-                        packaging_deposit_value: depB,
-                        secondary_packaging_deposit_value: depC,
-                        status: 'pending',
-                        source_transaction_id: purchase_id || null,
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    })
-                    .select('id')
-                    .maybeSingle();
-                if (consErr) {
-                    console.error('❌ ERREUR consignment INSERT:', consErr.message, consErr, {
-                        supplier_id, purchase_id, product_id: item.product_id, emptyB, emptyC
+                        movement_type: 'supplier_return',
+                        empty_packaging_qty: exchangeB,
+                        empty_secondary_packaging_qty: exchangeC,
+                        source_type: 'purchase',
+                        source_id: purchase_id || null,
+                        notes: `Échange automatique à la réception — ${exchangeB} B, ${exchangeC} C vides retournés.`,
+                        created_at: new Date().toISOString()
                     });
-                    consignmentErrors.push({
-                        product_id: item.product_id,
-                        error: consErr.message,
-                        supplier_id,
-                        emptyB,
-                        emptyC
-                    });
-                } else {
-                    console.log('✅ Consignment created:', consData?.id, 'supplier:', supplier_id, 'bottles:', emptyB, 'crates:', emptyC);
-                }
 
-                // 2. Increment suppliers.outstanding_bottles/crates
-                if (supplier_id && supplier_id !== 'unknown') {
-                    const { data: supplier, error: supSelErr } = await supabase
-                        .from('suppliers')
-                        .select('id, outstanding_bottles, outstanding_crates')
-                        .eq('id', supplier_id)
-                        .maybeSingle();
-                    if (supSelErr) {
-                        console.error('❌ ERREUR supplier SELECT:', supSelErr.message, 'supplier_id:', supplier_id);
-                    }
-                    if (supplier) {
-                        const newBottles = (Number(supplier.outstanding_bottles) || 0) + emptyB;
-                        const newCrates = (Number(supplier.outstanding_crates) || 0) + emptyC;
-                        const { error: supUpdErr } = await supabase.from('suppliers').update({
-                            outstanding_bottles: newBottles,
-                            outstanding_crates: newCrates,
+                    // Déduire du stock_by_location
+                    if (existingStock) {
+                        await supabase.from('stock_by_location').update({
+                            empty_packaging_qty: availableB - exchangeB,
+                            empty_secondary_packaging_qty: availableC - exchangeC,
                             updated_at: new Date().toISOString()
-                        }).eq('id', supplier_id);
-                        if (supUpdErr) {
-                            console.error('❌ ERREUR supplier UPDATE outstanding:', supUpdErr.message, 'supplier_id:', supplier_id);
-                        } else {
-                            console.log('✅ Supplier outstanding updated:', supplier_id, 'bottles:', newBottles, 'crates:', newCrates);
-                        }
-                    } else {
-                        console.error('❌ Supplier NOT FOUND for id:', supplier_id);
+                        }).eq('id', existingStock.id);
                     }
                 }
 
-                // 3. Update product empty packaging counters
-                const oldB = Number(product.empty_packaging_qty) || 0;
-                const oldC = Number(product.empty_secondary_packaging_qty) || 0;
-                const { error: prodUpdErr } = await supabase.from('products').update({
-                    empty_packaging_qty: oldB + emptyB,
-                    empty_secondary_packaging_qty: oldC + emptyC
-                }).eq('id', item.product_id);
-                if (prodUpdErr) {
-                    console.error('❌ ERREUR product empty_packaging UPDATE:', prodUpdErr.message, 'product_id:', item.product_id);
+                // 4. Traiter le DÉFICIT = CONSIGNE AUTOMATIQUE
+                if (consignB > 0 || consignC > 0) {
+                    // Créer la consigne
+                    const consignmentId = uuidv4();
+                    const { error: consErr } = await supabase
+                        .from('packaging_consignments')
+                        .insert({
+                            id: consignmentId,
+                            location_id: purchaseLocationId,
+                            entity_type: 'supplier',
+                            entity_id: supplier_id || 'unknown',
+                            entity_name: supplier_name || 'Fournisseur inconnu',
+                            product_id: item.product_id,
+                            product_name: product.name,
+                            empty_packaging_qty: consignB,
+                            empty_secondary_packaging_qty: consignC,
+                            packaging_deposit_value: depB,
+                            secondary_packaging_deposit_value: depC,
+                            status: 'pending',
+                            source_transaction_id: purchase_id || null,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        });
+                    
+                    if (consErr) {
+                        console.error('❌ ERREUR consignment INSERT:', consErr.message);
+                        consignmentErrors.push({ product_id: item.product_id, error: consErr.message });
+                    }
+
+                    // Incrémenter la dette d'emballage du fournisseur
+                    if (supplier_id && supplier_id !== 'unknown') {
+                        const { data: supplier } = await supabase
+                            .from('suppliers')
+                            .select('id, outstanding_bottles, outstanding_crates')
+                            .eq('id', supplier_id)
+                            .maybeSingle();
+                            
+                        if (supplier) {
+                            await supabase.from('suppliers').update({
+                                outstanding_bottles: (Number(supplier.outstanding_bottles) || 0) + consignB,
+                                outstanding_crates: (Number(supplier.outstanding_crates) || 0) + consignC,
+                                updated_at: new Date().toISOString()
+                            }).eq('id', supplier_id);
+                        }
+                    }
+
+                    // On n'ajoute PLUS les consignes fournisseur au stock vide (ni stock_by_location, ni products).
+                    // Car les emballages livrés par le fournisseur sont pleins (le liquide est compté dans 'stock').
+                    // Ils ne deviendront des "emballages vides" que lorsqu'ils seront retournés par les clients.
                 }
 
-                // 4. Record packaging_movements
-                const { error: movErr } = await supabase.from('packaging_movements').insert({
+                // Enregistrer le mouvement d'entrée "théorique" global pour la traçabilité
+                await supabase.from('packaging_movements').insert({
                     id: uuidv4(),
                     location_id: purchaseLocationId,
                     product_id: item.product_id,
@@ -1029,40 +1027,14 @@ router.post('/verify-reception', async (req, res) => {
                     empty_secondary_packaging_qty: emptyC,
                     source_type: 'purchase',
                     source_id: purchase_id || null,
-                    notes: `Réception achat — ${emptyB} bouteille(s), ${emptyC} cageot(s) vide(s) reçu(s)${item.notes ? ' — ' + item.notes : ''}`,
+                    notes: `Réception achat — Reçu ${emptyB} B / ${emptyC} C (${exchangeB}/${exchangeC} échangées, ${consignB}/${consignC} consignés)`,
                     created_at: new Date().toISOString()
                 });
-                if (movErr) {
-                    console.error('❌ ERREUR packaging_movements INSERT:', movErr.message, movErr);
-                }
-
-                // 5. Update stock_by_location empty packaging counters
-                if (purchaseLocationId) {
-                    const { data: existingStock } = await supabase
-                        .from('stock_by_location')
-                        .select('*')
-                        .eq('location_id', purchaseLocationId)
-                        .eq('product_id', item.product_id)
-                        .maybeSingle();
-                    if (existingStock) {
-                        const { error: sblErr } = await supabase.from('stock_by_location').update({
-                            empty_packaging_qty: (Number(existingStock.empty_packaging_qty) || 0) + emptyB,
-                            empty_secondary_packaging_qty: (Number(existingStock.empty_secondary_packaging_qty) || 0) + emptyC,
-                            updated_at: new Date().toISOString()
-                        }).eq('id', existingStock.id);
-                        if (sblErr) console.error('❌ ERREUR stock_by_location UPDATE:', sblErr.message);
-                    } else {
-                        const { error: sblInsErr } = await supabase.from('stock_by_location').insert({
-                            id: uuidv4(),
-                            location_id: purchaseLocationId,
-                            product_id: item.product_id,
-                            quantity: 0,
-                            empty_packaging_qty: emptyB,
-                            empty_secondary_packaging_qty: emptyC
-                        });
-                        if (sblInsErr) console.error('❌ ERREUR stock_by_location INSERT:', sblInsErr.message);
-                    }
-                }
+            } else {
+                item.exchange_bottles = 0;
+                item.exchange_crates = 0;
+                item.consign_bottles = 0;
+                item.consign_crates = 0;
             }
 
             // ── BREAKAGE (independent of consignment) ───────────────────
@@ -1101,7 +1073,15 @@ router.post('/verify-reception', async (req, res) => {
             totalCratesReceived += emptyC;
             totalBottlesBroken += brokenB;
             totalCratesBroken += brokenC;
-            totalDepositValue += (emptyB * depB) + (emptyC * depC);
+            
+            const consignB = item.consign_bottles || 0;
+            const consignC = item.consign_crates || 0;
+            totalDepositValue += (consignB * depB) + (consignC * depC);
+            
+            totalBottlesExchanged += item.exchange_bottles || 0;
+            totalCratesExchanged += item.exchange_crates || 0;
+            totalBottlesConsigned += consignB;
+            totalCratesConsigned += consignC;
 
             results.push({
                 product_id: item.product_id,
@@ -1110,8 +1090,79 @@ router.post('/verify-reception', async (req, res) => {
                 received_empty_bottles: emptyB,
                 received_empty_crates: emptyC,
                 broken_bottles: brokenB,
-                broken_crates: brokenC
+                broken_crates: brokenC,
+                exchange_bottles: item.exchange_bottles || 0,
+                exchange_crates: item.exchange_crates || 0,
+                consign_bottles: consignB,
+                consign_crates: consignC
             });
+        }
+
+        // ── FINANCIAL ACCOUNTING: Consignment fees → supplier debt ──
+        if (totalDepositValue > 0 && supplier_id && supplier_id !== 'unknown') {
+            console.log('💰 Calcul frais consignation:', totalDepositValue, 'supplier:', supplier_id);
+
+            // 1. Create expense record
+            const expenseId = uuidv4();
+            const { error: expErr } = await supabase.from('expenses').insert({
+                id: expenseId,
+                location_id: purchaseLocationId,
+                description: `Frais de consignation automatique - ${supplier_name || 'Fournisseur'} - ${purchaseGroup?.reference || ''}`,
+                amount: totalDepositValue,
+                category: 'consignment',
+                payment_method: 'on_credit',
+                date: new Date().toISOString().split('T')[0],
+                notes: `Consigne sur déficit: ${totalBottlesConsigned} bouteille(s), ${totalCratesConsigned} cageot(s) — Achat ${purchaseGroup?.reference || ''} (${totalBottlesExchanged}B/${totalCratesExchanged}C échangés)`,
+                created_at: new Date().toISOString()
+            });
+            if (expErr) {
+                console.error('❌ ERREUR expense INSERT (consignation):', expErr.message, expErr);
+            } else {
+                console.log('✅ Expense consignment created:', expenseId, 'montant:', totalDepositValue);
+            }
+
+            // 2. Create supplier_transaction record (debt increase)
+            const transId = uuidv4();
+            const { error: stErr } = await supabase.from('supplier_transactions').insert({
+                id: transId,
+                supplier_id: supplier_id,
+                location_id: purchaseLocationId,
+                type: 'consignment_fee',
+                reference: purchaseGroup?.reference || null,
+                total_amount: totalDepositValue,
+                paid_amount: 0,
+                debt_amount: totalDepositValue,
+                payment_method: 'on_credit',
+                date: new Date().toISOString().split('T')[0],
+                notes: `Frais consignation sur déficit: ${totalBottlesConsigned} bouteille(s) + ${totalCratesConsigned} cageot(s) — ${purchaseGroup?.reference || ''}`,
+                created_at: new Date().toISOString()
+            });
+            if (stErr) {
+                console.error('❌ ERREUR supplier_transactions INSERT (consignation):', stErr.message, stErr);
+            } else {
+                console.log('✅ Supplier transaction consignment created:', transId, 'debt:', totalDepositValue);
+            }
+
+            // 3. Update suppliers.total_debt
+            const { data: currentSupplier, error: selErr } = await supabase
+                .from('suppliers')
+                .select('id, total_debt')
+                .eq('id', supplier_id)
+                .maybeSingle();
+            if (selErr) {
+                console.error('❌ ERREUR supplier SELECT (total_debt):', selErr.message);
+            } else if (currentSupplier) {
+                const newDebt = (Number(currentSupplier.total_debt) || 0) + totalDepositValue;
+                const { error: debtUpdErr } = await supabase.from('suppliers').update({
+                    total_debt: newDebt,
+                    updated_at: new Date().toISOString()
+                }).eq('id', supplier_id);
+                if (debtUpdErr) {
+                    console.error('❌ ERREUR supplier UPDATE total_debt:', debtUpdErr.message);
+                } else {
+                    console.log('✅ Supplier total_debt updated:', supplier_id, 'new debt:', newDebt);
+                }
+            }
         }
 
         createAuditLog(
@@ -1166,11 +1217,15 @@ router.post('/verify-reception', async (req, res) => {
             reception_updated: receptionUpdated,
             consignment_errors: consignmentErrors.length > 0 ? consignmentErrors : undefined,
             totals: {
-                bottles_returned: totalBottlesReceived,
-                crates_returned: totalCratesReceived,
+                bottles_received: totalBottlesReceived,
+                crates_received: totalCratesReceived,
                 bottles_broken: totalBottlesBroken,
                 crates_broken: totalCratesBroken,
-                consigned: totalBottlesReceived + totalCratesReceived,
+                bottles_exchanged: totalBottlesExchanged,
+                crates_exchanged: totalCratesExchanged,
+                bottles_consigned: totalBottlesConsigned,
+                crates_consigned: totalCratesConsigned,
+                consigned: totalBottlesConsigned + totalCratesConsigned,
                 credit: totalDepositValue,
                 deposit_value: totalDepositValue
             }

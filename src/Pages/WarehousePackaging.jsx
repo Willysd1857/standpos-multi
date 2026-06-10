@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Package, AlertTriangle, Truck, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Package, AlertTriangle, Truck, Clock, RefreshCw } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -12,17 +13,26 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 export default function WarehousePackaging() {
     const { formatCurrency } = useCurrency();
     
+    const queryClient = useQueryClient();
+
     // Fetch outstanding packaging from movements (reliable source)
     const { data: outstanding = [], isLoading: loadingOutstanding } = useQuery({
         queryKey: ['supplier-outstanding'],
         queryFn: () => base44.entities.Packaging.getSupplierOutstanding(),
+        refetchInterval: 5000,
     });
 
     // Also fetch consignments as fallback (for cases where verify-reception was used)
     const { data: consignments = [], isLoading: loadingConsignments } = useQuery({
         queryKey: ['packaging_consignments'],
         queryFn: () => base44.entities.Packaging.getConsignments({ entity_type: 'supplier' }),
+        refetchInterval: 5000,
     });
+
+    const handleRefresh = () => {
+        queryClient.invalidateQueries({ queryKey: ['supplier-outstanding'] });
+        queryClient.invalidateQueries({ queryKey: ['packaging_consignments'] });
+    };
 
     // Merge both sources: outstanding movements + consignments, deduplicate by supplier+product
     const allItems = useMemo(() => {
@@ -105,12 +115,18 @@ export default function WarehousePackaging() {
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30 p-6">
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <Package className="w-7 h-7 text-indigo-600" />
-                        Gestion des Emballages (Entrepôt)
-                    </h1>
-                    <p className="text-gray-500">Suivi des consignes fournisseurs et gestion des retours</p>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                            <Package className="w-7 h-7 text-indigo-600" />
+                            Gestion des Emballages (Entrepôt)
+                        </h1>
+                        <p className="text-gray-500">Suivi des consignes fournisseurs et gestion des retours</p>
+                    </div>
+                    <Button variant="outline" onClick={handleRefresh} disabled={isLoading} className="gap-2">
+                        <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        Actualiser
+                    </Button>
                 </div>
 
                 {/* Dashboard / Alertes */}

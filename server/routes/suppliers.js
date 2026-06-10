@@ -189,8 +189,23 @@ router.get('/:id', requireAuth, async (req, res) => {
             .order('date', { ascending: false });
             
         if (transErr) throw transErr;
+
+        // Obtenir le détail des consignes en cours (produits)
+        const { data: consignments, error: consErr } = await supabase
+            .from('packaging_consignments')
+            .select('*')
+            .eq('entity_type', 'supplier')
+            .eq('entity_id', req.params.id)
+            .in('status', ['pending', 'partial'])
+            .order('created_at', { ascending: false });
+            
+        if (consErr) console.warn('Erreur fetch consignments:', consErr.message);
         
-        res.json({ ...supplier, transactions: transactions || [] });
+        res.json({ 
+            ...supplier, 
+            transactions: transactions || [],
+            consignments: consignments || [] 
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

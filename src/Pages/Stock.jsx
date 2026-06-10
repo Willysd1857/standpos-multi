@@ -124,6 +124,11 @@ export default function Stock() {
     queryFn: () => base44.entities.Packaging.getConsignments({ entity_type: 'customer' })
   });
 
+  const { data: supplierOutstanding = [], refetch: refetchSupplierOutstanding } = useQuery({
+    queryKey: ['supplier-outstanding'],
+    queryFn: () => base44.entities.Packaging.getSupplierOutstanding(),
+  });
+
   // Transferts d'emballages vides en attente de réception
   const { data: allTransfers = [], refetch: refetchTransfers } = useQuery({
     queryKey: ['pending-packaging-transfers'],
@@ -146,6 +151,7 @@ export default function Stock() {
     refetchRecipes();
     refetchTransfers();
     refetchLocationStock();
+    refetchSupplierOutstanding();
   };
 
   const isRefreshing = loadingProducts || refetchingProducts || loadingCategories;
@@ -300,6 +306,14 @@ export default function Stock() {
       fullCrates += cr;
     });
 
+    // 2.5) Emballages VIDES ou PLEINS consignés au fournisseur (à rendre au fournisseur)
+    let supplierConsignedBottles = 0;
+    let supplierConsignedCrates = 0;
+    supplierOutstanding.forEach(s => {
+      supplierConsignedBottles += Number(s.empty_packaging_qty) || 0;
+      supplierConsignedCrates += Number(s.empty_secondary_packaging_qty) || 0;
+    });
+
     // 3) Emballages VIDES (déjà calculés dans stats)
     return {
       fullBottles,
@@ -308,12 +322,14 @@ export default function Stock() {
       fullCratesInStock,
       fullBottlesAtClients,
       fullCratesAtClients,
+      supplierConsignedBottles,
+      supplierConsignedCrates,
       emptyBottles: stats.emptyBottles,
       emptyCrates: stats.emptyCrates,
       totalBottles: fullBottles + stats.emptyBottles,
       totalCrates: fullCrates + stats.emptyCrates
     };
-  }, [products, customerConsignments, stats.emptyBottles, stats.emptyCrates]);
+  }, [products, customerConsignments, supplierOutstanding, stats.emptyBottles, stats.emptyCrates]);
 
   const handleSearchChange = useCallback((e) => setSearchQuery(e.target.value), []);
   const handleCategoryChange = useCallback((val) => setCategoryFilter(val), []);
@@ -588,6 +604,11 @@ export default function Stock() {
                         <div className="text-[11px] text-gray-800 font-semibold uppercase tracking-wide">Total</div>
                         <div className="text-2xl font-bold text-gray-900 mt-1">{packagingOverview.totalBottles}</div>
                         <div className="text-[10px] text-gray-600">emballages</div>
+                        {packagingOverview.supplierConsignedBottles > 0 && (
+                           <div className="text-[9px] text-red-600 mt-1 font-medium bg-white/50 px-1 rounded inline-block">
+                             Dont {packagingOverview.supplierConsignedBottles} dû(s) frs.
+                           </div>
+                        )}
                       </div>
                     </div>
                     <div className="mt-3 text-xs text-gray-500 text-center italic">
@@ -634,6 +655,11 @@ export default function Stock() {
                         <div className="text-[11px] text-gray-800 font-semibold uppercase tracking-wide">Total</div>
                         <div className="text-2xl font-bold text-gray-900 mt-1">{packagingOverview.totalCrates}</div>
                         <div className="text-[10px] text-gray-600">emballages</div>
+                        {packagingOverview.supplierConsignedCrates > 0 && (
+                           <div className="text-[9px] text-red-600 mt-1 font-medium bg-white/50 px-1 rounded inline-block">
+                             Dont {packagingOverview.supplierConsignedCrates} dû(s) frs.
+                           </div>
+                        )}
                       </div>
                     </div>
                     <div className="mt-3 text-xs text-gray-500 text-center italic">

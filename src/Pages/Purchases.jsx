@@ -483,6 +483,8 @@ export default function Purchases() {
                             queryClient.invalidateQueries({ queryKey: ['suppliers-enriched'] });
                             queryClient.invalidateQueries({ queryKey: ['supplier-outstanding'] });
                             queryClient.invalidateQueries({ queryKey: ['packaging_consignments'] });
+                            queryClient.invalidateQueries({ queryKey: ['packaging_history'] });
+                            queryClient.invalidateQueries({ queryKey: ['location-packaging-stock'] });
                             setReceptionTarget(null);
                             toast.success('Réception validée. Le stock a été ajouté.');
                         } else {

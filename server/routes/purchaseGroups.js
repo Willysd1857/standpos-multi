@@ -401,20 +401,13 @@ router.post('/', async (req, res) => {
                     remainingC -= cDeduct;
 
                     if (bDeduct > 0 || cDeduct > 0) {
-                        const { data: product } = await supabase
+                        // Fetch product name for movement log
+                        const { data: pkgProduct } = await supabase
                             .from('products')
-                            .select('empty_packaging_qty, empty_secondary_packaging_qty, name')
+                            .select('name')
                             .eq('id', item.product_id)
                             .maybeSingle();
-                        if (product) {
-                            await supabase
-                                .from('products')
-                                .update({
-                                    empty_packaging_qty: Math.max(0, (Number(product.empty_packaging_qty) || 0) - bDeduct),
-                                    empty_secondary_packaging_qty: Math.max(0, (Number(product.empty_secondary_packaging_qty) || 0) - cDeduct)
-                                })
-                                .eq('id', item.product_id);
-                        }
+
                         if (destinationId) {
                             const { data: locStock } = await supabase
                                 .from('stock_by_location')
@@ -437,7 +430,7 @@ router.post('/', async (req, res) => {
                             id: uuidv4(),
                             location_id: destinationId || null,
                             product_id: item.product_id,
-                            product_name: product?.name || item.product_name,
+                            product_name: pkgProduct?.name || item.product_name || 'Produit inconnu',
                             movement_type: 'supplier_return',
                             empty_packaging_qty: bDeduct,
                             empty_secondary_packaging_qty: cDeduct,

@@ -397,29 +397,83 @@ export default function Suppliers() {
                 </div>
               </div>
 
-              <div>
-                <h4 className="font-semibold text-gray-700 mb-3">Historique des transactions</h4>
-                {(selectedSupplier?.transactions || []).length === 0 ? (
-                  <p className="text-gray-400 text-sm text-center py-6">Aucune transaction pour ce fournisseur</p>
-                ) : (
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {selectedSupplier.transactions.map(t => (
-                      <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={t.type === 'payment' ? 'default' : t.type === 'packaging_return' ? 'secondary' : 'outline'}
-                              className={t.type === 'payment' ? 'bg-green-100 text-green-700' : t.type === 'packaging_return' ? 'bg-blue-100 text-blue-700' : ''}>
-                              {t.type === 'payment' ? 'Paiement' : t.type === 'packaging_return' ? 'Retour consigne' : t.type}
-                            </Badge>
+              <Tabs defaultValue="transactions" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="transactions">Historique</TabsTrigger>
+                  <TabsTrigger value="consignments">Consignes en cours</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="transactions">
+                  {(selectedSupplier?.transactions || []).length === 0 ? (
+                    <p className="text-gray-400 text-sm text-center py-6">Aucune transaction pour ce fournisseur</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                      {selectedSupplier.transactions.map(t => (
+                        <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={t.type === 'payment' ? 'default' : t.type === 'packaging_return' ? 'secondary' : 'outline'}
+                                className={
+                                  t.type === 'payment' ? 'bg-green-100 text-green-700' :
+                                  t.type === 'packaging_return' ? 'bg-blue-100 text-blue-700' :
+                                  t.type === 'consignment_fee' ? 'bg-orange-100 text-orange-700' :
+                                  t.type === 'purchase' ? 'bg-red-100 text-red-700' : ''
+                                }>
+                                {t.type === 'payment' ? 'Paiement' :
+                                 t.type === 'packaging_return' ? 'Retour consigne' :
+                                 t.type === 'consignment_fee' ? 'Frais consignation' :
+                                 t.type === 'purchase' ? 'Achat' : t.type}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1">{t.notes || t.date}</p>
                           </div>
-                          <p className="text-xs text-gray-400 mt-1">{t.notes || t.date}</p>
+                          <span className={`font-bold ${t.type === 'payment' ? 'text-green-600' : 'text-red-600'}`}>
+                            {t.type === 'payment' ? '+' : ''}{formatMoney(t.total_amount)}
+                          </span>
                         </div>
-                        <span className="font-bold text-green-600">+{formatMoney(t.total_amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="consignments">
+                  {(selectedSupplier?.consignments || []).length === 0 ? (
+                    <p className="text-gray-400 text-sm text-center py-6">Aucune consigne en cours</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                      {selectedSupplier.consignments.map(c => (
+                        <div key={c.id} className="flex items-center justify-between p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="bg-white border-indigo-200 text-indigo-700">
+                                {c.product_name}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Reçu le {format(new Date(c.created_at), 'dd MMM yyyy', { locale: fr })}
+                              {c.due_date && ` • Échéance : ${format(new Date(c.due_date), 'dd MMM yyyy', { locale: fr })}`}
+                            </p>
+                          </div>
+                          <div className="flex gap-4 text-right">
+                            {Number(c.empty_packaging_qty) > 0 && (
+                              <div className="text-center">
+                                <div className="text-xs text-gray-500">Bouteilles</div>
+                                <div className="font-bold text-indigo-700">{c.empty_packaging_qty}</div>
+                              </div>
+                            )}
+                            {Number(c.empty_secondary_packaging_qty) > 0 && (
+                              <div className="text-center">
+                                <div className="text-xs text-gray-500">Cageots</div>
+                                <div className="font-bold text-indigo-700">{c.empty_secondary_packaging_qty}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
           </DialogContent>
         </Dialog>

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Search, RotateCcw, AlertTriangle, User, Calendar, Clock, Wine, Boxes, Container, Trash2, FileWarning } from 'lucide-react';
+import { Package, Search, RotateCcw, AlertTriangle, User, Calendar, Clock, Wine, Boxes, Container, Trash2, FileWarning, Warehouse } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,12 +11,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/contexts/AuthContext';
+import { base44, fetchAPI } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 export default function CustomerPackagingTab({ products }) {
   const { formatCurrency } = useCurrency();
+  const { user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [returningConsignment, setReturningConsignment] = useState(null);
@@ -27,6 +29,15 @@ export default function CustomerPackagingTab({ products }) {
   const [breakageProductId, setBreakageProductId] = useState('');
   const [breakageQuantity, setBreakageQuantity] = useState('');
   const [breakageReason, setBreakageReason] = useState('');
+  const [breakageLocationId, setBreakageLocationId] = useState('');
+
+  const needsLocationPicker = isAdmin() && !user?.location_id;
+
+  const { data: allLocations = [] } = useQuery({
+    queryKey: ['locations'],
+    queryFn: () => fetchAPI('/locations'),
+    enabled: needsLocationPicker,
+  });
 
   // Fetch detailed consignments instead of summary
   const { data: consignments = [], isLoading } = useQuery({
@@ -124,11 +135,16 @@ export default function CustomerPackagingTab({ products }) {
     setBreakageProductId('');
     setBreakageQuantity('');
     setBreakageReason('');
+    setBreakageLocationId('');
   };
 
   const submitBreakage = () => {
     if (!breakageProductId) {
       toast.error('Veuillez sélectionner un produit');
+      return;
+    }
+    if (needsLocationPicker && !breakageLocationId) {
+      toast.error('Veuillez sélectionner un emplacement');
       return;
     }
     const qty = Number(breakageQuantity) || 0;
@@ -152,7 +168,8 @@ export default function CustomerPackagingTab({ products }) {
       product_id: breakageProductId,
       broken_bottles: breakageType === 'bottle' ? qty : 0,
       broken_crates: breakageType === 'crate' ? qty : 0,
-      reason: breakageReason || 'Déclaration de casse'
+      reason: breakageReason || 'Déclaration de casse',
+      location_id: needsLocationPicker ? breakageLocationId : user?.location_id
     });
   };
 
@@ -562,6 +579,24 @@ export default function CustomerPackagingTab({ products }) {
                 </p>
               </div>
               <div className="p-5 space-y-4">
+                {needsLocationPicker && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-gray-700">Emplacement *</Label>
+                    <select
+                      value={breakageLocationId}
+                      onChange={(e) => setBreakageLocationId(e.target.value)}
+                      className="flex h-10 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 cursor-pointer"
+                    >
+                      <option value="">— Sélectionner un emplacement —</option>
+                      {allLocations.filter(l => l.is_active !== false).map(loc => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name} ({loc.type === 'store' ? 'Magasin' : 'Entrepôt'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-gray-700">Type d'emballage</Label>
                   <div className="grid grid-cols-2 gap-3">

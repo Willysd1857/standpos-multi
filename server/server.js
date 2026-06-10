@@ -89,50 +89,6 @@ app.use((req, res, next) => {
     next();
 });
 
-app.post('/api/settings/wipe-data', async (req, res) => {
-    console.log('>>> WIPING DATA FROM ROOT HANDLER USING SUPABASE');
-    const { getUserFromRequest, createAuditLog } = require('./middleware/auditLogger');
-    try {
-        const user = getUserFromRequest(req);
-        if (user.role !== 'admin') return res.status(403).json({ error: 'Seul l\'administrateur peut effectuer cette action.' });
-
-        const tables = ['transactions', 'payments', 'stock_movements', 'expenses', 'purchase_groups', 'purchase_group_items', 'purchases', 'ingredient_movements', 'ingredient_usage_groups', 'audit_logs', 'stock_transfer_items', 'stock_transfers', 'supplier_transactions', 'packaging_movements', 'packaging_consignments'];
-        
-        // Delete all rows in parallel/sequentially for each table in Supabase
-        for (const table of tables) {
-            const { error } = await supabase.from(table).delete().neq('id', 'null');
-            if (error) {
-                console.warn(`Could not clear table ${table}:`, error.message);
-            }
-        }
-
-        // Reset customer debt counters
-        await supabase
-            .from('customers')
-            .update({ unpaid_count: 0, is_blocked: false })
-            .neq('id', 'null');
-            
-        // Reset supplier debt counters
-        await supabase
-            .from('suppliers')
-            .update({ total_debt: 0 })
-            .neq('id', 'null');
-
-        // Reset product packaging stock
-        await supabase
-            .from('products')
-            .update({ empty_packaging_qty: 0, empty_secondary_packaging_qty: 0 })
-            .neq('id', 'null');
-
-        // Create audit log
-        createAuditLog(user.id, user.username, 'WIPE_ALL_DATA', 'system', 'all', { message: "Réinitialisation par l'administrateur." }, null, user.location_id);
-        
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
 app.use('/api/products/import', require('./routes/importProducts'));
 app.use('/api/products', productsRouter);
 app.use('/api/categories', categoriesRouter);
