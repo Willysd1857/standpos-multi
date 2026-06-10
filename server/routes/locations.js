@@ -84,34 +84,51 @@ router.get('/:id/packaging-stock', async (req, res) => {
         if (stockErr) throw stockErr;
 
         const productIds = (stockRows || []).map(r => r.product_id).filter(Boolean);
+
+        // Also fetch all products with has_packaging=true (to include those with no stock_by_location row yet)
+        const { data: allPackagingProducts, error: pkgErr } = await supabase
+            .from('products')
+            .select('id, name, unit, has_packaging, bottle_deposit_price, crate_deposit_price, packaging_type_id, secondary_packaging_type_id')
+            .eq('has_packaging', true);
+        if (pkgErr) throw pkgErr;
+
+        // Build products map: merge stock rows with all packaging products
         let productsMap = {};
-        if (productIds.length) {
-            const { data: products, error: prodErr } = await supabase
+        const allProductIds = new Set([...productIds, ...(allPackagingProducts || []).map(p => p.id)]);
+        for (const p of (allPackagingProducts || [])) productsMap[p.id] = p;
+
+        // Also fetch products that have stock rows but might not have has_packaging=true
+        const missingIds = [...productIds].filter(id => !productsMap[id]);
+        if (missingIds.length) {
+            const { data: extraProducts } = await supabase
                 .from('products')
                 .select('id, name, unit, has_packaging, bottle_deposit_price, crate_deposit_price, packaging_type_id, secondary_packaging_type_id')
-                .in('id', productIds);
-            if (prodErr) throw prodErr;
-            for (const p of (products || [])) productsMap[p.id] = p;
+                .in('id', missingIds);
+            for (const p of (extraProducts || [])) productsMap[p.id] = p;
         }
 
-        const items = (stockRows || [])
-            .map(r => {
-                const p = productsMap[r.product_id] || {};
+        // Build a map of existing stock_by_location rows
+        const stockMap = {};
+        for (const r of (stockRows || [])) stockMap[r.product_id] = r;
+
+        const items = [...allProductIds]
+            .map(productId => {
+                const p = productsMap[productId] || {};
+                const r = stockMap[productId];
                 return {
-                    stock_id: r.id,
-                    product_id: r.product_id,
+                    stock_id: r?.id || null,
+                    product_id: productId,
                     product_name: p.name || 'Produit inconnu',
                     unit: p.unit || '',
                     has_packaging: p.has_packaging || false,
-                    quantity: Number(r.quantity) || 0,
-                    empty_packaging_qty: Number(r.empty_packaging_qty) || 0,
-                    empty_secondary_packaging_qty: Number(r.empty_secondary_packaging_qty) || 0,
+                    quantity: Number(r?.quantity) || 0,
+                    empty_packaging_qty: Number(r?.empty_packaging_qty) || 0,
+                    empty_secondary_packaging_qty: Number(r?.empty_secondary_packaging_qty) || 0,
                     bottle_deposit_price: p.bottle_deposit_price || 0,
                     crate_deposit_price: p.crate_deposit_price || 0,
                 };
             })
-            // Ne garder que les produits qui ont AU MOINS un emballage vide à cet emplacement
-            .filter(r => r.empty_packaging_qty > 0 || r.empty_secondary_packaging_qty > 0);
+            .filter(r => r.has_packaging);
 
         const totals = items.reduce(
             (acc, r) => {
@@ -121,6 +138,8 @@ router.get('/:id/packaging-stock', async (req, res) => {
             },
             { empty_bottles: 0, empty_crates: 0 }
         );
+
+        console.log('packaging-stock check:', { allProductIds: [...allProductIds], itemsLength: items.length, productsMapKeys: Object.keys(productsMap) });
 
         res.json({ location: loc, items, totals });
     } catch (error) {

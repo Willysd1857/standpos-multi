@@ -58,9 +58,31 @@ router.get('/', async (req, res) => {
             for (const l of (locs || [])) locationsMap[l.id] = l;
         }
 
+        // Enrich items with product packaging config
+        const allProductIds = [...new Set(
+            (groups || []).flatMap(g => (g.items || []).map(i => i.product_id).filter(Boolean))
+        )];
+        let productPackagingMap = {};
+        if (allProductIds.length) {
+            const { data: prods } = await supabase
+                .from('products')
+                .select('id, has_packaging, units_per_secondary_packaging, bottle_deposit_price, crate_deposit_price')
+                .in('id', allProductIds);
+            for (const p of (prods || [])) productPackagingMap[p.id] = p;
+        }
+
         const enriched = (groups || []).map(g => ({
             ...g,
-            destination: g.location_id ? (locationsMap[g.location_id] || null) : null
+            destination: g.location_id ? (locationsMap[g.location_id] || null) : null,
+            items: (g.items || []).map(item => ({
+                ...item,
+                ...(productPackagingMap[item.product_id] ? {
+                    has_packaging: productPackagingMap[item.product_id].has_packaging,
+                    units_per_secondary_packaging: productPackagingMap[item.product_id].units_per_secondary_packaging || 1,
+                    bottle_deposit_price: productPackagingMap[item.product_id].bottle_deposit_price || 0,
+                    crate_deposit_price: productPackagingMap[item.product_id].crate_deposit_price || 0,
+                } : {})
+            }))
         }));
 
         res.json(enriched);
@@ -84,7 +106,31 @@ router.get('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Purchase group not found' });
         }
 
-        res.json(group);
+        // Enrich items with product packaging config
+        const productIds = (group.items || []).map(i => i.product_id).filter(Boolean);
+        let productPackagingMap = {};
+        if (productIds.length) {
+            const { data: prods } = await supabase
+                .from('products')
+                .select('id, has_packaging, units_per_secondary_packaging, bottle_deposit_price, crate_deposit_price')
+                .in('id', productIds);
+            for (const p of (prods || [])) productPackagingMap[p.id] = p;
+        }
+
+        const enrichedGroup = {
+            ...group,
+            items: (group.items || []).map(item => ({
+                ...item,
+                ...(productPackagingMap[item.product_id] ? {
+                    has_packaging: productPackagingMap[item.product_id].has_packaging,
+                    units_per_secondary_packaging: productPackagingMap[item.product_id].units_per_secondary_packaging || 1,
+                    bottle_deposit_price: productPackagingMap[item.product_id].bottle_deposit_price || 0,
+                    crate_deposit_price: productPackagingMap[item.product_id].crate_deposit_price || 0,
+                } : {})
+            }))
+        };
+
+        res.json(enrichedGroup);
     } catch (error) {
         console.error(`❌ Erreur GET /purchase-groups/${req.params.id}:`, error);
         res.status(500).json({ error: error.message });
@@ -175,37 +221,32 @@ router.post('/', async (req, res) => {
         let destinationIsStore = false;
         if (hasNewCols) {
             const senderLoc = user.location_id || null;
-            if (destinationId && destinationId !== senderLoc) {
+
+            // STRICT MULTI-LOCATION PACKAGING ROUTING:
+            // If any item in the order has packaging, force Entrepôt 1 ('loc-wh-1')
+            // as the destination. This overrides any choice made by the user/admin.
+            if (hasPackagingItems) {
+                destinationId = 'loc-wh-1';
                 needsReception = true;
-            }
-
-            // Determine the destination's type: only `store` (Magasin) destinations
-            // should touch the global `products.stock`. Warehouse destinations must
-            // ONLY update `stock_by_location` to keep Magasin stock isolated.
-            if (destinationId) {
-                const { data: destLoc } = await supabase
-                    .from('locations')
-                    .select('id, type')
-                    .eq('id', destinationId)
-                    .maybeSingle();
-                destinationIsStore = destLoc?.type === 'store';
+                destinationIsStore = false;
+                console.log(`[routing] Packaging items detected. Forcing destination to 'loc-wh-1'.`);
             } else {
-                destinationIsStore = true; // No destination = legacy "Magasin direct"
-            }
-
-            if (!destinationId && hasPackagingItems) {
-                // Admin without own location buying packaging products → send to "first warehouse" (Entrepôt 1)
-                // Find first warehouse by name containing "entrepôt 1" or any warehouse
-                const { data: wh } = await supabase
-                    .from('locations')
-                    .select('id, name, type')
-                    .eq('type', 'warehouse')
-                    .order('name')
-                    .limit(1)
-                    .maybeSingle();
-                if (wh) {
-                    destinationId = wh.id;
+                if (destinationId && destinationId !== senderLoc) {
                     needsReception = true;
+                }
+
+                // Determine the destination's type: only `store` (Magasin) destinations
+                // should touch the global `products.stock`. Warehouse destinations must
+                // ONLY update `stock_by_location` to keep Magasin stock isolated.
+                if (destinationId) {
+                    const { data: destLoc } = await supabase
+                        .from('locations')
+                        .select('id, type')
+                        .eq('id', destinationId)
+                        .maybeSingle();
+                    destinationIsStore = destLoc?.type === 'store';
+                } else {
+                    destinationIsStore = true; // No destination = legacy "Magasin direct"
                 }
             }
         }
@@ -469,6 +510,30 @@ router.post('/', async (req, res) => {
 
         if (fetchErr) throw fetchErr;
 
+        // Enrich items with product packaging config so immediate verification works correctly
+        const productIdsResponse = (group.items || []).map(i => i.product_id).filter(Boolean);
+        let productPackagingMap = {};
+        if (productIdsResponse.length) {
+            const { data: prods } = await supabase
+                .from('products')
+                .select('id, has_packaging, units_per_secondary_packaging, bottle_deposit_price, crate_deposit_price')
+                .in('id', productIdsResponse);
+            for (const p of (prods || [])) productPackagingMap[p.id] = p;
+        }
+
+        const enrichedGroup = {
+            ...group,
+            items: (group.items || []).map(item => ({
+                ...item,
+                ...(productPackagingMap[item.product_id] ? {
+                    has_packaging: productPackagingMap[item.product_id].has_packaging,
+                    units_per_secondary_packaging: productPackagingMap[item.product_id].units_per_secondary_packaging || 1,
+                    bottle_deposit_price: productPackagingMap[item.product_id].bottle_deposit_price || 0,
+                    crate_deposit_price: productPackagingMap[item.product_id].crate_deposit_price || 0,
+                } : {})
+            }))
+        };
+
         // Audit log
         createAuditLog(
             user.id,
@@ -496,7 +561,7 @@ router.post('/', async (req, res) => {
         );
 
         res.status(201).json({
-            ...group,
+            ...enrichedGroup,
             needs_reception: needsReception,
             reception_status: hasNewCols ? receptionStatus : 'received',
             destination_id: destinationId,
@@ -667,6 +732,19 @@ router.delete('/:id', async (req, res) => {
 
         // Reverse stock if status was validated
         if (group.status === 'validated' && group.items) {
+            // Determine destination location type
+            let destinationIsStore = false;
+            if (group.location_id) {
+                const { data: destLoc } = await supabase
+                    .from('locations')
+                    .select('id, type')
+                    .eq('id', group.location_id)
+                    .maybeSingle();
+                destinationIsStore = destLoc?.type === 'store';
+            } else {
+                destinationIsStore = true; // legacy "Magasin direct"
+            }
+
             for (const item of group.items) {
                 if (item.product_id) {
                     const { data: product } = await supabase
@@ -680,10 +758,32 @@ router.delete('/:id', async (req, res) => {
                         const qtyToSub = Number(item.quantity);
                         const newStock = currentStock - qtyToSub;
 
-                        await supabase
-                            .from('products')
-                            .update({ stock: newStock })
-                            .eq('id', item.product_id);
+                        if (destinationIsStore) {
+                            await supabase
+                                .from('products')
+                                .update({ stock: newStock })
+                                .eq('id', item.product_id);
+                        }
+
+                        // Also reverse stock_by_location if location_id exists!
+                        if (group.location_id) {
+                            const { data: locStock } = await supabase
+                                .from('stock_by_location')
+                                .select('id, quantity')
+                                .eq('location_id', group.location_id)
+                                .eq('product_id', item.product_id)
+                                .maybeSingle();
+
+                            if (locStock) {
+                                await supabase
+                                    .from('stock_by_location')
+                                    .update({
+                                        quantity: Math.max(0, (Number(locStock.quantity) || 0) - qtyToSub),
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .eq('id', locStock.id);
+                            }
+                        }
 
                         // Record stock movement (reverse)
                         await supabase
@@ -691,13 +791,14 @@ router.delete('/:id', async (req, res) => {
                             .insert({
                                 id: uuidv4(),
                                 product_id: item.product_id,
+                                location_id: group.location_id || null,
                                 product_name: product.name,
                                 movement_type: 'annulation',
                                 quantity: -qtyToSub,
-                                stock_before: currentStock,
-                                stock_after: newStock,
+                                stock_before: destinationIsStore ? currentStock : null,
+                                stock_after: destinationIsStore ? newStock : null,
                                 transaction_ref: group.reference,
-                                notes: `Annulation approvisionnement groupé`
+                                notes: `Annulation approvisionnement groupé${destinationIsStore ? '' : ' [entrepôt — global products.stock inchangé]'}`
                             });
                     }
                 }

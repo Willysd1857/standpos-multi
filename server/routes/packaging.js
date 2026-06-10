@@ -399,18 +399,17 @@ router.get('/supplier-outstanding', async (req, res) => {
             const mo = movementOutstanding[key];
             const outstandingBottles = mo.received_bottles - mo.returned_bottles;
             const outstandingCrates = mo.received_crates - mo.returned_crates;
-            if (outstandingBottles > 0 || outstandingCrates > 0) {
-                outstanding[key] = {
-                    supplier_id: mo.supplier_id,
-                    supplier_name: mo.supplier_name,
-                    product_id: mo.product_id,
-                    product_name: mo.product_name,
-                    empty_packaging_qty: outstandingBottles,
-                    empty_secondary_packaging_qty: outstandingCrates,
-                    purchase_ref: mo.purchase_ref,
-                    created_at: mo.created_at
-                };
-            }
+            if (outstandingBottles <= 0 && outstandingCrates <= 0) continue; // fully returned
+            outstanding[key] = {
+                supplier_id: mo.supplier_id,
+                supplier_name: mo.supplier_name,
+                product_id: mo.product_id,
+                product_name: mo.product_name,
+                empty_packaging_qty: outstandingBottles,
+                empty_secondary_packaging_qty: outstandingCrates,
+                purchase_ref: mo.purchase_ref,
+                created_at: mo.created_at
+            };
         }
 
         // 3. Build result
@@ -755,6 +754,9 @@ router.post('/verify-reception', async (req, res) => {
         if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: 'Aucun emballage à vérifier.' });
         }
+        console.log("=== VERIFY RECEPTION PAYLOAD ===");
+        console.log(JSON.stringify(req.body, null, 2));
+
 
         // Fetch purchase group to know the location (where the stock was received)
         let purchaseLocationId = user.location_id || null;
@@ -892,7 +894,7 @@ router.post('/verify-reception', async (req, res) => {
 
             const { data: product } = await supabase
                 .from('products')
-                .select('id, name, empty_packaging_qty, empty_secondary_packaging_qty, bottle_deposit_price, crate_deposit_price, units_per_secondary_packaging')
+                .select('id, name, has_packaging, units_per_secondary_packaging, bottle_deposit_price, crate_deposit_price')
                 .eq('id', item.product_id)
                 .maybeSingle();
             if (!product) continue;
@@ -966,9 +968,11 @@ router.post('/verify-reception', async (req, res) => {
                 }
 
                 // 4. Traiter le DÉFICIT = CONSIGNE AUTOMATIQUE
+                console.log(`[consign] emptyB=${emptyB} emptyC=${emptyC} exchangeB=${exchangeB} exchangeC=${exchangeC} consignB=${consignB} consignC=${consignC}`);
                 if (consignB > 0 || consignC > 0) {
                     // Créer la consigne
                     const consignmentId = uuidv4();
+                    console.log(`[consign] Inserting consignment: product=${product.name}, B=${consignB}, C=${consignC}, supplier=${supplier_id}`);
                     const { error: consErr } = await supabase
                         .from('packaging_consignments')
                         .insert({
@@ -990,8 +994,10 @@ router.post('/verify-reception', async (req, res) => {
                         });
                     
                     if (consErr) {
-                        console.error('❌ ERREUR consignment INSERT:', consErr.message);
+                        console.error('❌ ERREUR consignment INSERT:', consErr.message, JSON.stringify(consErr));
                         consignmentErrors.push({ product_id: item.product_id, error: consErr.message });
+                    } else {
+                        console.log('✅ Consignment inserted successfully:', consignmentId);
                     }
 
                     // Incrémenter la dette d'emballage du fournisseur

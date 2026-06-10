@@ -333,6 +333,12 @@ export const base44 = {
                     method: 'PUT',
                     body: JSON.stringify(data),
                 });
+            },
+            returnPackaging: async (id, data) => {
+                return fetchAPI(`/suppliers/${id}/return-packaging`, {
+                    method: 'POST',
+                    body: JSON.stringify(data),
+                });
             }
         },
         BIReports: {

@@ -97,23 +97,32 @@ export default function CheckoutModal({ open, onClose, items, onConfirm, isLoadi
         returned_crates: 0
     });
 
-    // Auto-set location_id for non-admins only (they always receive at their
-    // own location, no choice). Admins MUST explicitly pick a destination
-    // every time — never pre-select for them.
-    useEffect(() => {
-        if (!isAdmin() && user?.location_id) {
-            setFormData(prev => ({ ...prev, location_id: user.location_id }));
-        }
-    }, [isAdmin, user, open]);
+    // Auto-detect if any item in the order has packaging
+    const hasPackagingItems = useMemo(() => {
+        return (items || []).some(item => item.has_packaging);
+    }, [items]);
 
-    // Reset the admin's destination when the modal re-opens, so they always
+    // Auto-set location_id for non-admins only (they always receive at their
+    // own location, no choice) OR if the order contains packaging items (forces 'loc-wh-1').
+    // Admins MUST explicitly pick a destination every time — never pre-select for them, unless packaging items are present.
+    useEffect(() => {
+        if (open) {
+            if (hasPackagingItems) {
+                setFormData(prev => ({ ...prev, location_id: 'loc-wh-1' }));
+            } else if (!isAdmin() && user?.location_id) {
+                setFormData(prev => ({ ...prev, location_id: user.location_id }));
+            }
+        }
+    }, [isAdmin, user, open, hasPackagingItems]);
+
+    // Reset the admin's destination when the modal re-opens (unless packaging items force Entrepôt 1), so they always
     // make a fresh, conscious choice. (Without this, an admin who picked
     // "Entrepôt 1" on the previous order would silently get "Entrepôt 1" again.)
     useEffect(() => {
-        if (open && isAdmin()) {
+        if (open && isAdmin() && !hasPackagingItems) {
             setFormData(prev => ({ ...prev, location_id: '' }));
         }
-    }, [open, isAdmin]);
+    }, [open, isAdmin, hasPackagingItems]);
 
     // When a supplier is selected, auto-fill supplier_name and outstanding balances
     const selectedSupplier = useMemo(
@@ -215,66 +224,81 @@ export default function CheckoutModal({ open, onClose, items, onConfirm, isLoadi
                         maximum reliability inside a Radix Dialog. Radix Select
                         (portal-based) was dropping its items when nested in
                         DialogContent, so we switch to a plain HTML <select>. */}
-                    {isAdmin() && (
-                        <div className="space-y-2">
-                            <Label htmlFor="location_id" className="flex items-center gap-1">
-                                <MapPin className="w-3.5 h-3.5" /> Destination du stock *
-                            </Label>
-                            {locationsError ? (
-                                <div className="p-3 text-sm bg-red-50 border border-red-200 text-red-700 rounded-lg space-y-2">
-                                    <p className="font-semibold">⚠ Erreur de chargement des emplacements</p>
-                                    <p className="text-xs">{locationsError.message}</p>
-                                    <button
-                                        type="button"
-                                        onClick={() => refetchLocations()}
-                                        className="text-xs underline hover:no-underline"
-                                    >
-                                        Réessayer
-                                    </button>
+                    {isAdmin() ? (
+                        hasPackagingItems ? (
+                            <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 flex items-start gap-3">
+                                <Truck className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="text-sm font-bold text-amber-900">Destination verrouillée — Entrepôt 1</p>
+                                    <p className="text-xs text-amber-700 mt-1">
+                                        Cette commande contient des produits consignés (avec emballage).
+                                        Elle sera obligatoirement réceptionnée à l'Entrepôt 1, puis transitera vers l'Entrepôt 2 avant de rejoindre le Magasin.
+                                    </p>
                                 </div>
-                            ) : (
-                                <>
-                                    <div className="relative">
-                                        <select
-                                            id="location_id"
-                                            data-testid="destination-select"
-                                            value={formData.location_id || ''}
-                                            onChange={(e) => setFormData({ ...formData, location_id: e.target.value })}
-                                            disabled={locationsLoading}
-                                            className={
-                                                "flex h-9 w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer pr-8 " +
-                                                (formData.location_id
-                                                    ? 'border-gray-300'
-                                                    : 'border-amber-400 bg-amber-50 text-amber-700')
-                                            }
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label htmlFor="location_id" className="flex items-center gap-1">
+                                    <MapPin className="w-3.5 h-3.5" /> Destination du stock *
+                                </Label>
+                                {locationsError ? (
+                                    <div className="p-3 text-sm bg-red-50 border border-red-200 text-red-700 rounded-lg space-y-2">
+                                        <p className="font-semibold">⚠ Erreur de chargement des emplacements</p>
+                                        <p className="text-xs">{locationsError.message}</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => refetchLocations()}
+                                            className="text-xs underline hover:no-underline"
                                         >
-                                            <option value="">
-                                                {locationsLoading ? '⏳ Chargement...' : '— Choisir la destination —'}
-                                            </option>
-                                            {locations.map(loc => (
-                                                <option
-                                                    key={loc.id}
-                                                    value={loc.id}
-                                                    data-testid={`destination-option-${loc.id}`}
-                                                >
-                                                    {loc.type === 'store' ? 'Magasin' : 'Entrepôt'} — {loc.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50 pointer-events-none" />
+                                            Réessayer
+                                        </button>
                                     </div>
-                                    {!formData.location_id && !locationsLoading && locations.length > 0 && (
-                                        <p className="text-[11px] text-amber-600">⚠ Veuillez choisir une destination pour le stock.</p>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    )}
-
-                    {!isAdmin() && (
+                                ) : (
+                                    <>
+                                        <div className="relative">
+                                            <select
+                                                id="location_id"
+                                                data-testid="destination-select"
+                                                value={formData.location_id || ''}
+                                                onChange={(e) => setFormData({ ...formData, location_id: e.target.value })}
+                                                disabled={locationsLoading}
+                                                className={
+                                                    "flex h-9 w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring appearance-none cursor-pointer pr-8 " +
+                                                    (formData.location_id
+                                                        ? 'border-gray-300'
+                                                        : 'border-amber-400 bg-amber-50 text-amber-700')
+                                                }
+                                            >
+                                                <option value="">
+                                                    {locationsLoading ? '⏳ Chargement...' : '— Choisir la destination —'}
+                                                </option>
+                                                {locations.map(loc => (
+                                                    <option
+                                                        key={loc.id}
+                                                        value={loc.id}
+                                                        data-testid={`destination-option-${loc.id}`}
+                                                    >
+                                                        {loc.type === 'store' ? 'Magasin' : 'Entrepôt'} — {loc.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50 pointer-events-none" />
+                                        </div>
+                                        {!formData.location_id && !locationsLoading && locations.length > 0 && (
+                                            <p className="text-[11px] text-amber-600">⚠ Veuillez choisir une destination pour le stock.</p>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        )
+                    ) : (
                         <div className="bg-gray-50 p-3 rounded-lg flex items-center gap-2 border border-gray-100 text-sm text-gray-600">
                             <MapPin className="w-4 h-4 text-gray-400" />
-                            Stock destiné à votre emplacement actuel
+                            {hasPackagingItems ? (
+                                <span>Stock destiné à l'Entrepôt 1 (obligatoire pour emballages)</span>
+                            ) : (
+                                <span>Stock destiné à votre emplacement actuel</span>
+                            )}
                         </div>
                     )}
 

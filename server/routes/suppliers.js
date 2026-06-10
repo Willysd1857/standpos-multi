@@ -319,8 +319,8 @@ router.post('/:id/pay', requireAuth, async (req, res) => {
 router.post('/:id/return-packaging', requireAuth, async (req, res) => {
     try {
         const supplierId = req.params.id;
-        const { product_id, empty_qty, empty_secondary_qty } = req.body;
-        const locationId = req.user.location_id;
+        const { product_id, empty_qty, empty_secondary_qty, location_id: bodyLocationId } = req.body;
+        const locationId = req.user.location_id || bodyLocationId;
         const { v4: uuidv4 } = require('uuid');
 
         if (!locationId && req.user.role !== 'admin') {
@@ -340,7 +340,7 @@ router.post('/:id/return-packaging', requireAuth, async (req, res) => {
 
         // Obtenir les valeurs des consignes via le produit
         const { data: product } = await supabase.from('products')
-            .select('packaging_type_id, secondary_packaging_type_id')
+            .select('name, packaging_type_id, secondary_packaging_type_id')
             .eq('id', product_id)
             .single();
 
@@ -376,6 +376,31 @@ router.post('/:id/return-packaging', requireAuth, async (req, res) => {
             outstanding_crates: newOutstandingCrates
         }).eq('id', supplierId);
 
+        // FIFO consignations fournisseur — marquer comme retournées
+        const { data: pendingCons } = await supabase.from('packaging_consignments')
+            .select('*')
+            .eq('entity_type', 'supplier')
+            .eq('entity_id', supplierId)
+            .eq('product_id', product_id)
+            .in('status', ['pending', 'partial'])
+            .order('created_at', { ascending: true });
+        let remB = Number(empty_qty) || 0, remC = Number(empty_secondary_qty) || 0;
+        for (const cons of (pendingCons || [])) {
+            if (remB <= 0 && remC <= 0) break;
+            const cB = Number(cons.empty_packaging_qty) || 0;
+            const cC = Number(cons.empty_secondary_packaging_qty) || 0;
+            const dB = Math.min(cB, remB);
+            const dC = Math.min(cC, remC);
+            remB -= dB;
+            remC -= dC;
+            await supabase.from('packaging_consignments').update({
+                empty_packaging_qty: cB - dB,
+                empty_secondary_packaging_qty: cC - dC,
+                status: (cB - dB === 0 && cC - dC === 0) ? 'returned' : 'partial',
+                updated_at: new Date().toISOString()
+            }).eq('id', cons.id);
+        }
+
         // Historique
         const transactionId = uuidv4();
         await supabase.from('supplier_transactions').insert([{
@@ -387,6 +412,20 @@ router.post('/:id/return-packaging', requireAuth, async (req, res) => {
             date: new Date().toISOString().split('T')[0],
             notes: `Retour emballages vides: ${empty_qty || 0} unit(s), ${empty_secondary_qty || 0} secondaire(s)`
         }]);
+
+        // Mouvement d'emballage pour traçabilité
+        await supabase.from('packaging_movements').insert({
+            id: uuidv4(),
+            location_id: locationId,
+            product_id: product_id,
+            product_name: product.name || 'Produit',
+            movement_type: 'supplier_return',
+            empty_packaging_qty: Number(empty_qty) || 0,
+            empty_secondary_packaging_qty: Number(empty_secondary_qty) || 0,
+            source_type: 'manual',
+            notes: `Retour fournisseur direct`,
+            created_at: new Date().toISOString()
+        });
 
         createAuditLog(req.user.id, req.user.username, 'SUPPLIER_PACKAGING_RETURN', 'supplier', supplierId, { totalRefundValue, newDebt }, null, locationId);
 

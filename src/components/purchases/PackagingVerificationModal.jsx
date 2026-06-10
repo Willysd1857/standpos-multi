@@ -15,25 +15,32 @@ function buildInitialData(purchaseGroup) {
     purchaseGroup.items.forEach(item => {
         if (!item || !item.product_id) return;
         const qty = Number(item.quantity) || 0;
+
+        // Auto-compute expected empty packaging return from product config.
+        const hasPackaging = item.has_packaging;
+        const autoBottles = hasPackaging ? qty : 0;
+        const autoCrates = hasPackaging && item.units_per_secondary_packaging > 0 ? Math.floor(qty / item.units_per_secondary_packaging) : 0;
+
         initialData[item.product_id] = {
             product_id: item.product_id,
             product_name: item.product_name || 'Produit',
             ordered_quantity: qty,
-            // Emballages vides REÇUS du fournisseur (= consignes à retourner)
-            received_empty_bottles: 0,
-            received_empty_crates: 0,
+            // Pre-fill with auto-computed values (operator can adjust)
+            received_empty_bottles: autoBottles,
+            received_empty_crates: String(autoCrates),
             // Casse éventuelle
             broken_packaging_qty: 0,
             broken_secondary_packaging_qty: 0,
-            // Valeurs des consignes
-            packaging_deposit_value: 500,
-            secondary_packaging_deposit_value: 3500,
+            // Valeurs des consignes — pre-fill from product config if available
+            packaging_deposit_value: Number(item.bottle_deposit_price) || 500,
+            secondary_packaging_deposit_value: Number(item.crate_deposit_price) || 3500,
             notes: '',
             verified: false
         };
     });
     return initialData;
 }
+
 
 export default function PackagingVerificationModal({ open, onClose, purchaseGroup, onVerified }) {
     const [packagingData, setPackagingData] = useState({});
@@ -263,13 +270,14 @@ export default function PackagingVerificationModal({ open, onClose, purchaseGrou
                                 </div>
 
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pl-8">
-                                    {/* Colonne 1 : Emballages vides réclamés par fournisseur */}
+                                    {/* Colonne 1 : Emballages vides à retourner au fournisseur */}
                                     <div className="space-y-1">
                                         <Label className="text-xs font-bold text-indigo-700 flex items-center justify-between gap-1">
                                             <span className="flex items-center gap-1">
                                                 <ArrowDownRight className="w-3 h-3"/>
-                                                Bouteilles Réclamées
+                                                Bouteilles à Retourner
                                             </span>
+                                            <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1 rounded">Auto</span>
                                         </Label>
                                         <div className="relative">
                                             <Input 
@@ -283,10 +291,11 @@ export default function PackagingVerificationModal({ open, onClose, purchaseGrou
                                             />
                                         </div>
                                         <div className="flex justify-between items-center text-[10px]">
-                                            <span className="text-gray-400">Emballages du fournisseur</span>
+                                            <span className="text-gray-400">Calculé auto — ajustable</span>
                                             <span className="text-green-600 font-medium bg-green-50 px-1 rounded border border-green-100">Dispo: {stockMap.get(item.product_id)?.b || 0}</span>
                                         </div>
                                     </div>
+
                                     <div className="space-y-1">
                                         <Label className="text-xs font-bold text-indigo-700 flex items-center justify-between gap-1">
                                             <span className="flex items-center gap-1">
@@ -298,7 +307,7 @@ export default function PackagingVerificationModal({ open, onClose, purchaseGrou
                                             <Input 
                                                 type="number" 
                                                 min="0"
-                                                value={item.received_empty_crates}
+                                                value={item.received_empty_crates ?? '0'}
                                                 onChange={(e) => handleChange(item.product_id, 'received_empty_crates', e.target.value)}
                                                 className="h-8 border-indigo-300 focus-visible:ring-indigo-500"
                                                 placeholder="0"

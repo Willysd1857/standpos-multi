@@ -371,14 +371,50 @@ export default function EmptyPackagingTransferModal({ open, onClose }) {
                 {/* ── Product list with quantity inputs ─────────────────────── */}
                 {selectedRoute && fromLocationId && (
                   <>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                      <Input
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Rechercher un produit..."
-                        className="pl-10 rounded-xl"
-                      />
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        <Input
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Rechercher un produit..."
+                          className="pl-10 rounded-xl"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const hasAnyDraft = filteredItems.some(item => {
+                            const d = getDraft(item.product_id);
+                            return d && ((Number(d.empty_qty) || 0) > 0 || (Number(d.empty_secondary_qty) || 0) > 0);
+                          });
+                          if (hasAnyDraft) {
+                            setDrafts({});
+                          } else {
+                            const newDrafts = {};
+                            for (const item of filteredItems) {
+                              newDrafts[item.product_id] = {
+                                empty_qty: String(item.empty_packaging_qty || 0),
+                                empty_secondary_qty: String(item.empty_secondary_packaging_qty || 0),
+                              };
+                            }
+                            setDrafts(newDrafts);
+                          }
+                        }}
+                        className={`h-10 px-3 rounded-xl border text-xs font-semibold whitespace-nowrap transition-all ${
+                          filteredItems.some(item => {
+                            const d = getDraft(item.product_id);
+                            return d && ((Number(d.empty_qty) || 0) > 0 || (Number(d.empty_secondary_qty) || 0) > 0);
+                          })
+                            ? 'border-teal-300 bg-teal-50 text-teal-700 hover:bg-teal-100'
+                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-300'
+                        }`}
+                      >
+                        {filteredItems.some(item => {
+                          const d = getDraft(item.product_id);
+                          return d && ((Number(d.empty_qty) || 0) > 0 || (Number(d.empty_secondary_qty) || 0) > 0);
+                        }) ? 'Tout décocher' : 'Tout sélectionner'}
+                      </button>
                     </div>
 
                     {loadingStock ? (

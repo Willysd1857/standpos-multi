@@ -27,7 +27,8 @@ export default function QuickAddModal({ open, onClose, product, onAdd }) {
             unit: product.unit,
             quantity: Number(quantity),
             unit_price: Number(unitPrice),
-            total: Number(quantity) * Number(unitPrice)
+            total: Number(quantity) * Number(unitPrice),
+            has_packaging: product.has_packaging
         });
 
         // Reset and close
