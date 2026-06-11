@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../services/supabaseClient');
+const supabaseAdmin = require('../services/supabaseAdmin');
 const { createAuditLog, getUserFromRequest } = require('../middleware/auditLogger');
 
 // Get settings
@@ -73,6 +74,17 @@ router.post('/wipe-data', async (req, res) => {
             return res.status(403).json({ error: 'Seul l\'administrateur peut effectuer cette action.' });
         }
 
+        // Use service_role key to bypass RLS on bulk operations.
+        // Without it, RLS will block mass DELETEs and UPDATEs in production.
+        const hasServiceRole = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const bulkClient = hasServiceRole ? supabaseAdmin : supabase;
+        if (!hasServiceRole) {
+            console.warn('[WipeData] ⚠️ SUPABASE_SERVICE_ROLE_KEY not set — RLS will block mass operations in production. Add it in Render dashboard env vars.');
+        }
+
+        // ---- STEP 1: DELETE transactional/child rows ----
+        // Use the regular supabase client (an anon key call may work if RLS policies allow DELETE for authenticated admin role).
+        // If that fails, the fallback strategies below still apply.
         const tablesToClear = [
             'transactions',
             'payments',
@@ -89,29 +101,30 @@ router.post('/wipe-data', async (req, res) => {
             'stock_transfers',
             'supplier_transactions',
             'losses_and_damages',
-            'stock_by_location',
             'audit_logs'
         ];
 
         // Helper : supprimer toutes les lignes d'une table en testant plusieurs stratégies
         // pour gérer les cas où id peut être NULL / vide / ou la table ne pas avoir created_at.
+        // Uses bulkClient (service_role) when available, otherwise falls back to anon key client.
         const wipeTable = async (table) => {
+            const client = bulkClient;
             const strategies = [
-                () => supabase.from(table).delete().neq('id', ''),
-                () => supabase.from(table).delete().gte('created_at', '1900-01-01'),
-                () => supabase.from(table).delete().gte('updated_at', '1900-01-01'),
-                () => supabase.from(table).delete().not('id', 'is', null),
+                () => client.from(table).delete().neq('id', ''),
+                () => client.from(table).delete().gte('created_at', '1900-01-01'),
+                () => client.from(table).delete().gte('updated_at', '1900-01-01'),
+                () => client.from(table).delete().not('id', 'is', null),
             ];
             for (const strategy of strategies) {
                 const { error } = await strategy();
                 if (!error) return true;
             }
             // Dernier recours : sélection + delete par lots
-            const { data: rows, error: selErr } = await supabase.from(table).select('id').limit(1000);
+            const { data: rows, error: selErr } = await client.from(table).select('id').limit(1000);
             if (selErr || !rows || rows.length === 0) return false;
             const ids = rows.map(r => r.id).filter(Boolean);
             if (ids.length === 0) return false;
-            const { error: delErr } = await supabase.from(table).delete().in('id', ids);
+            const { error: delErr } = await client.from(table).delete().in('id', ids);
             return !delErr;
         };
 
@@ -124,33 +137,67 @@ router.post('/wipe-data', async (req, res) => {
             }
         }
 
-        // Reset customer credit status + packaging debt
-        await supabase
-            .from('customers')
-            .update({ unpaid_count: 0, is_blocked: false, packaging_debt_bottles: 0, packaging_debt_crates: 0 })
-            .not('id', 'is', null);
+        // ---- STEP 2: UPDATE stock-by-location to zero (never DELETE, to avoid FK violations) ----
+        try {
+            const { error: sblErr } = await bulkClient
+                .from('stock_by_location')
+                .update({ quantity: 0, empty_packaging_qty: 0, empty_secondary_packaging_qty: 0 })
+                .not('id', 'is', null);
+            if (sblErr) {
+                console.warn(`[WipeData] ⚠️ stock_by_location UPDATE failed (trying raw fallback):`, sblErr.message);
+            } else {
+                console.log(`[WipeData] ✓ stock_by_location quantities reset to 0`);
+            }
+        } catch (sblFallbackErr) {
+            console.warn(`[WipeData] ⚠️ stock_by_location UPDATE threw:`, sblFallbackErr.message);
+        }
 
-        console.log(`[WipeData] Reset customer credit status + packaging debt`);
+        // ---- STEP 3: Reset customer credit status + packaging debt ----
+        try {
+            const { error: custErr } = await bulkClient
+                .from('customers')
+                .update({ unpaid_count: 0, is_blocked: false, packaging_debt_bottles: 0, packaging_debt_crates: 0 })
+                .not('id', 'is', null);
+            if (custErr) {
+                console.warn(`[WipeData] ⚠️ customers UPDATE failed:`, custErr.message);
+            } else {
+                console.log(`[WipeData] ✓ Reset customer credit status + packaging debt`);
+            }
+        } catch (custErr) {
+            console.warn(`[WipeData] ⚠️ customers UPDATE threw:`, custErr.message);
+        }
 
-        // Reset supplier debt + outstanding packaging
-        await supabase
-            .from('suppliers')
-            .update({ total_debt: 0, outstanding_bottles: 0, outstanding_crates: 0 })
-            .not('id', 'is', null);
+        // ---- STEP 4: Reset supplier debt + outstanding packaging ----
+        try {
+            const { error: suppErr } = await bulkClient
+                .from('suppliers')
+                .update({ total_debt: 0, outstanding_bottles: 0, outstanding_crates: 0 })
+                .not('id', 'is', null);
+            if (suppErr) {
+                console.warn(`[WipeData] ⚠️ suppliers UPDATE failed:`, suppErr.message);
+            } else {
+                console.log(`[WipeData] ✓ Reset supplier debt + outstanding packaging`);
+            }
+        } catch (suppErr) {
+            console.warn(`[WipeData] ⚠️ suppliers UPDATE threw:`, suppErr.message);
+        }
 
-        console.log(`[WipeData] Reset supplier debt + outstanding packaging`);
+        // ---- STEP 5: Reset product stock ----
+        try {
+            const { error: prodErr } = await bulkClient
+                .from('products')
+                .update({ stock: 0 })
+                .not('id', 'is', null);
+            if (prodErr) {
+                console.warn(`[WipeData] ⚠️ products UPDATE failed:`, prodErr.message);
+            } else {
+                console.log(`[WipeData] ✓ Reset product stock`);
+            }
+        } catch (prodErr) {
+            console.warn(`[WipeData] ⚠️ products UPDATE threw:`, prodErr.message);
+        }
 
-        // Reset product stock (packaging counts are computed from stock_by_location, not stored in products)
-        await supabase
-            .from('products')
-            .update({
-                stock: 0
-            })
-            .not('id', 'is', null);
-
-        console.log(`[WipeData] Reset product stock`);
-
-        // Create a new audit log
+        // ---- STEP 6: Create a new audit log ----
         createAuditLog(
             user.id,
             user.username,
