@@ -1,6 +1,6 @@
 // API client for StandPOS SQLite backend
 // Use relative path to take advantage of Vite proxy or same-origin in production
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const fetchAPI = async (endpoint, options = {}) => {
     // Add timeout to prevent hanging requests

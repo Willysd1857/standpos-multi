@@ -41,7 +41,7 @@ const UserManagement = () => {
 
     const fetchUsers = async () => {
         try {
-            const response = await fetch('http://localhost:3002/api/users', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/users`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -65,7 +65,7 @@ const UserManagement = () => {
 
     const handleAddUser = async () => {
         try {
-            const response = await fetch('http://localhost:3002/api/users', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/users`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ const UserManagement = () => {
                 label: 'Supprimer',
                 onClick: async () => {
                     try {
-                        const response = await fetch(`http://localhost:3002/api/users/${userId}`, {
+                        const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/users/${userId}`, {
                             method: 'DELETE',
                             headers: {
                                 'Authorization': `Bearer ${token}`
@@ -118,7 +118,7 @@ const UserManagement = () => {
 
     const handleToggleActive = async (userId, currentStatus) => {
         try {
-            const response = await fetch(`http://localhost:3002/api/users/${userId}/activate`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/users/${userId}/activate`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -146,7 +146,7 @@ const UserManagement = () => {
         }
 
         try {
-            const response = await fetch('http://localhost:3002/api/auth/change-password', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/auth/change-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

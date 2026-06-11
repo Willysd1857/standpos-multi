@@ -42,7 +42,7 @@ const AuditLogs = () => {
             if (filters.end_date) params.append('end_date', filters.end_date);
             if (filters.action) params.append('action', filters.action);
 
-            const response = await fetch(`http://localhost:3002/api/audit-logs?${params}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/audit-logs?${params}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
