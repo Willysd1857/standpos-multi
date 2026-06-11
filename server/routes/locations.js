@@ -104,27 +104,20 @@ router.get('/:id/packaging-stock', async (req, res) => {
 
         const productIds = (stockRows || []).map(r => r.product_id).filter(Boolean);
 
-        // Also fetch all products with has_packaging=true (to include those with no stock_by_location row yet)
-        const { data: allPackagingProducts, error: pkgErr } = await supabase
+        // Fetch ALL products (not just has_packaging=true) so we never miss products
+        // that have packaging stock but haven't had the has_packaging flag set yet.
+        const { data: allProducts, error: pkgErr } = await supabase
             .from('products')
-            .select('id, name, unit, has_packaging, bottle_deposit_price, crate_deposit_price, packaging_type_id, secondary_packaging_type_id')
-            .eq('has_packaging', true);
-        if (pkgErr) throw pkgErr;
-
-        // Build products map: merge stock rows with all packaging products
-        let productsMap = {};
-        const allProductIds = new Set([...productIds, ...(allPackagingProducts || []).map(p => p.id)]);
-        for (const p of (allPackagingProducts || [])) productsMap[p.id] = p;
-
-        // Also fetch products that have stock rows but might not have has_packaging=true
-        const missingIds = [...productIds].filter(id => !productsMap[id]);
-        if (missingIds.length) {
-            const { data: extraProducts } = await supabase
-                .from('products')
-                .select('id, name, unit, has_packaging, bottle_deposit_price, crate_deposit_price, packaging_type_id, secondary_packaging_type_id')
-                .in('id', missingIds);
-            for (const p of (extraProducts || [])) productsMap[p.id] = p;
+            .select('id, name, unit, has_packaging, bottle_deposit_price, crate_deposit_price, packaging_type_id, secondary_packaging_type_id');
+        if (pkgErr) {
+            console.error('[PackagingStock] Error fetching products:', pkgErr.message);
+            throw pkgErr;
         }
+
+        // Build products map: merge stock rows with all products
+        let productsMap = {};
+        const allProductIds = new Set([...productIds, ...(allProducts || []).map(p => p.id)]);
+        for (const p of (allProducts || [])) productsMap[p.id] = p;
 
         // Build a map of existing stock_by_location rows
         const stockMap = {};
@@ -147,7 +140,7 @@ router.get('/:id/packaging-stock', async (req, res) => {
                     crate_deposit_price: p.crate_deposit_price || 0,
                 };
             })
-            .filter(r => r.has_packaging);
+            .filter(r => r.has_packaging || r.empty_packaging_qty > 0 || r.empty_secondary_packaging_qty > 0);
 
         const totals = items.reduce(
             (acc, r) => {

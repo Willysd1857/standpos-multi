@@ -5,23 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Package, Wine, Boxes, Loader2, AlertTriangle, Warehouse, Save, Search } from 'lucide-react';
+import { Package, Wine, Boxes, Loader2, AlertTriangle, Warehouse, Save, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-
-const API_BASE = '/api';
-const getToken = () => localStorage.getItem('auth_token');
-const fetchAPI = async (endpoint, options = {}) => {
-  const token = getToken();
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers },
-    ...options,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Request failed');
-  }
-  return res.json();
-};
+import { fetchAPI } from '@/api/base44Client';
 
 export default function PackagingAdjustModal({ open, onClose, location }) {
   const queryClient = useQueryClient();
@@ -39,14 +25,30 @@ export default function PackagingAdjustModal({ open, onClose, location }) {
     }
   }, [open]);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, error: queryError, refetch } = useQuery({
     queryKey: ['location-packaging-stock', location?.id],
-    queryFn: () => fetchAPI(`/locations/${location.id}/packaging-stock`),
+    queryFn: async () => {
+      try {
+        const res = await fetchAPI(`/locations/${location.id}/packaging-stock`);
+        return res;
+      } catch (err) {
+        console.error('[PackagingAdjustModal] API error:', err.message, 'endpoint:', `/locations/${location.id}/packaging-stock`);
+        throw err;
+      }
+    },
     enabled: !!open && !!location?.id,
   });
 
+  if (queryError) {
+    console.error('[PackagingAdjustModal] queryError:', queryError.message);
+  }
+
   const items = data?.items || [];
   const totals = data?.totals || { empty_bottles: 0, empty_crates: 0 };
+
+  if (open && data) {
+    console.log('[PackagingAdjustModal] data received:', { itemCount: items.length, totals, rawItems: data.items?.length });
+  }
 
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim()) return items;
@@ -142,6 +144,30 @@ export default function PackagingAdjustModal({ open, onClose, location }) {
         </DialogHeader>
 
         <div className="px-6 pt-4 space-y-4 overflow-y-auto flex-1">
+          {/* Error banner when API fails */}
+          {queryError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-red-700 font-semibold text-sm">
+                <AlertTriangle className="w-4 h-4" />
+                Erreur lors du chargement des emballages
+              </div>
+              <p className="text-xs text-red-600">
+                {queryError.message || 'Le serveur a retourné une erreur inattendue.'}
+              </p>
+              <p className="text-[10px] text-red-500">
+                Endpoint : /api/locations/{location?.id}/packaging-stock — Vérifiez que le serveur backend est actif et que SUPABASE_SERVICE_ROLE_KEY est configurée.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => refetch()}
+                className="self-start rounded-lg text-xs gap-1 border-red-300 text-red-700 hover:bg-red-100"
+              >
+                <RefreshCw className="w-3 h-3" /> Réessayer
+              </Button>
+            </div>
+          )}
+
           {/* Totaux actuels */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-purple-100 bg-purple-50/50 p-3">
@@ -199,6 +225,12 @@ export default function PackagingAdjustModal({ open, onClose, location }) {
               <Package className="w-10 h-10 mx-auto text-gray-300 mb-2" />
               <p className="font-medium">Aucun emballage vide à ajuster</p>
               <p className="text-xs mt-1">Aucun produit avec emballage n'a de stock vide à cet emplacement.</p>
+              {data && (
+                <p className="text-[10px] mt-2 text-gray-400">
+                  Debug: {data.items?.length || 0} items reçus de l'API — 
+                  Vérifiez que les produits ont <code>has_packaging=true</code> ou des quantités {'>'} 0.
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-2 pb-2">

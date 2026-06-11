@@ -19,31 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import TransferReceptionModal from '@/components/stock/TransferReceptionModal';
 import TransferDetailsModal from '@/components/stock/TransferDetailsModal';
 import CategoryTabs from '@/components/pos/CategoryTabs';
-
-const API_BASE = '/api';
-const getToken = () => localStorage.getItem('auth_token');
-const fetchAPI = async (endpoint, options = {}) => {
-  const token = getToken();
-  const url = `${API_BASE}${endpoint}`;
-  try {
-    const res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers },
-      ...options,
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      console.error(`[fetchAPI] ${res.status} ${endpoint}:`, err);
-      throw new Error(err.error || `Erreur serveur ${res.status}`);
-    }
-    return res.json();
-  } catch (err) {
-    if (err.name === 'TypeError' && err.message.includes('fetch')) {
-      console.error(`[fetchAPI] Erreur réseau pour ${endpoint}:`, err);
-      throw new Error('Impossible de contacter le serveur. Vérifiez votre connexion Internet ou que le serveur est accessible.');
-    }
-    throw err;
-  }
-};
+import { fetchAPI } from '@/api/base44Client';
 
 const STATUS_MAP = {
   in_transit: { label: 'En Transit', color: 'bg-amber-100 text-amber-700', icon: Truck },

@@ -14,18 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import PackagingAdjustModal from '@/components/stock/PackagingAdjustModal';
-
-const API_BASE = '/api';
-const getToken = () => localStorage.getItem('auth_token');
-const fetchAPI = async (endpoint, options = {}) => {
-  const token = getToken();
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers },
-    ...options,
-  });
-  if (!res.ok) { const err = await res.json().catch(() => ({ error: res.statusText })); throw new Error(err.error || 'Request failed'); }
-  return res.json();
-};
+import { fetchAPI } from '@/api/base44Client';
 
 const TYPES = [
   { value: 'store', label: 'Magasin', icon: Store, color: 'blue' },
