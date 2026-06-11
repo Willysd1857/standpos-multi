@@ -236,7 +236,7 @@ export default function PackagingAdjustModal({ open, onClose, location }) {
                           <Input
                             type="number"
                             min="0"
-                            value={draft ? draft.empty_packaging_qty : item.empty_packaging_qty}
+                            value={draft?.empty_packaging_qty ?? item?.empty_packaging_qty ?? ''}
                             onChange={(e) => setDraft(item.product_id, 'empty_packaging_qty', e.target.value)}
                             className="rounded-lg h-9"
                           />
@@ -258,7 +258,7 @@ export default function PackagingAdjustModal({ open, onClose, location }) {
                           <Input
                             type="number"
                             min="0"
-                            value={draft ? draft.empty_secondary_packaging_qty : item.empty_secondary_packaging_qty}
+                            value={draft?.empty_secondary_packaging_qty ?? item?.empty_secondary_packaging_qty ?? ''}
                             onChange={(e) => setDraft(item.product_id, 'empty_secondary_packaging_qty', e.target.value)}
                             className="rounded-lg h-9"
                           />
